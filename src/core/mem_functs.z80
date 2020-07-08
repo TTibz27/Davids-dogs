@@ -1,0 +1,134 @@
+INCLUDE "hardware.inc"
+
+SECTION "memcpy", ROM0
+    ;Memory Functions should go in this section.
+memcpy::
+    ; DE = block size
+    ; BC = source address
+    ; HL = destination address
+    ; dec DE
+
+.memcpy_loop:
+    ld A, [BC]
+    ld [HL], A
+    inc BC
+    inc HL
+    dec DE
+
+.memcpy_check_limit:
+    ld A, E
+    cp $00
+    jr nz, .memcpy_loop     
+    ld A, D
+    cp $00
+    jr nz, .memcpy_loop
+    ret
+
+memfill:: ;; this will fill a  block of memory with the same bytes repeating
+    ;  B = value to fill
+    ; DE = Block size
+    ; HL = destination address
+.memfill_loop:
+    ld [HL], B
+    inc HL
+    dec DE
+
+.memfill_check:
+    ld A, E
+    cp $00
+    jr nz, .memfill_loop     
+    ld A, D
+    cp $00
+    jr nz, .memfill_loop
+    ret
+    
+
+smallTileMapCopy:: ; This function should be used to fill in < 32 * 32 tiles screens into memory.Will be allgned to top left of map
+    ; WARNING BAD THINGS WILL HAPPEN IF HEIGHT OR WIDTH ARE OVER 32
+    ; B = width
+    ;  C = height
+    ; DE = soruce address
+    ; HL = changes to Map Space
+  ;store width for next row
+  ld a, b
+  ld [TileMapCopyWidth], a
+  dec c ; zero index the width for simplicity
+
+.tile_map_copy_start
+    ld A, [DE]
+    ld [HLi], A ;; increments destination byte
+    inc DE  ;; increments source byte
+    dec b ;; decrement current width
+
+.tile_map_row_check
+    ld a, b
+    cp $00
+    jp nz, .tile_map_copy_start
+    ld a, c
+    cp $00
+    jp z, .tile_map_end
+    dec c ; that row is finished, dec c
+    ; we need to reset b to width for next row
+    ld a, [TileMapCopyWidth]
+    ld b, a
+      ; we need to inc the dest by the difference between row length and $20
+    ld a,$20 
+    sub b ; leaves A with remainder of bytes
+
+    add l ;  a = a + l
+    ld l, a ;  l = (a+l)
+    jp nc, .skip_carry_flag
+    inc h ; if we carried we need to inc H
+
+.skip_carry_flag 
+    jp .tile_map_copy_start
+
+.tile_map_end
+   ret
+
+
+  ld A, B ; use width to determine when to jump to next row
+
+section "TileCopyRAM", wram0
+TileMapCopyWidth::
+  db
+
+
+
+SECTION "OAM DMA routine", ROM0
+;-----------------------------
+;CopyDMARoutine() - Moves defined DMARoutine Function to hOAMDMA location in memory, i.e. from ROM to HRAM area 
+;Destroys HL, BC, AF
+;Note that this does not run DMA, it only initializes the DMA routine. To run DMACopy, call hOAMDMA 
+;-----------------------------
+CopyDMARoutine::
+  ld  hl, DMARoutine ;; set location of DMA routine to hl
+  ld  b, DMARoutineEnd - DMARoutine ; Number of bytes to copy
+  ld  c, LOW(hOAMDMA) ; Low byte of the destination address
+.copy ; moves DMARoutine to hOAMDMA in HRAM
+  ld  a, [hli]
+  ldh [c], a
+  inc c
+  dec b
+  jr  nz, .copy
+  ret
+
+;This Code should never be called from this location in ROM. it exists to be copied to HRAM
+DMARoutine:
+  ldh [rDMA], a ;;writing to this register will start the dma tranfser
+  ld  a, 40  ;set the value to wait for
+.wait
+  dec a   ; 1 cycle
+  jr  nz, .wait ;3 cycles
+  ret ; after 40 times (40 * 4 cycles = 160 cycles) return
+DMARoutineEnd:
+
+;; This defines a section in HRAM to store the OAM DMA transfer function
+SECTION "OAM DMA", HRAM
+;-----------------------------
+;hOAMDMA(a) - DMA Transfer from "XX00 -XX9F" to "FE00 -FE9F", where XX is value of A register 
+;Destroys AF
+;Takes 160 Cycles
+;-----------------------------
+hOAMDMA::
+  ds DMARoutineEnd - DMARoutine ; Reserve space in HRAM to copy the routine to

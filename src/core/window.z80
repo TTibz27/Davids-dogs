@@ -1,0 +1,24 @@
+INCLUDE "hardware.inc"
+INCLUDE "src/memory/hram.z80"
+SECTION "Game Window", ROM0
+
+swapWindows::
+;     ld a, [rSCY]
+;     cp $00
+;     jr nz, .toTop 
+; .toBot
+;     ld a, 112
+;     ld [rSCY], a
+;     ldh a, [hTableFlags]
+;     ;set to zero
+;     res 0,a
+;     ldh [hTableFlags], a
+;     ret
+; .toTop
+;     xor a ; ld a, 0
+;     ld [rSCY], a
+;     ldh a, [hTableFlags]
+;     ;set to one
+;     set 0,a
+;     ldh [hTableFlags], a
+    ret

@@ -1,0 +1,190 @@
+INCLUDE "hardware.inc"
+INCLUDE "src/memory/hram.z80"
+INCLUDE "src/memory/wram.z80"
+INCLUDE "src/memory/vector_labels.z80"
+
+INCLUDE "gfx/table_prototype.z80"
+INCLUDE "gfx/tileset_1.z80"
+
+; We need to replace - 
+; Pinball tiles - tile map 
+
+SECTION "Header", ROM0[$100]
+EntryPoint: ;
+    jp Start ;  
+REPT $150 - $104
+    db 0
+ENDR
+
+SECTION "Game Init", ROM0
+
+Start:
+     di ;disable interupts while initializing
+
+    ;wait for
+    call initWaitVBlank
+    xor a ; ld a, 0 ; We only need to reset a value with bit 7 reset, but 0 does the job
+    ld [rLCDC], a ; We will have to write to LCDC again later, so it's not a bother, really.
+
+    ; initialize flags to zero
+    ld [hVBlankWaitFlag], a
+   
+.copyTiles
+    ld de, endBgTiles - BgTiles ; size of tiles?
+    ld bc, BgTiles
+    ld hl, $9000 ; vram
+    
+    call memcpy; 
+
+.copyTileMap ;  this loads the tile map! 
+    ld hl, $9800 ; move to top left of tile map
+    ld b, $14 ;; width of screen in hex
+    ld c, $12 ; height of screen in hex
+    ld de, BgTileMap
+    call smallTileMapCopy
+
+.copySprites
+    ld hl, $8000
+    ld bc, Tile_Set_1
+    ld de,  $01FF 
+    call memcpy
+
+    ; blank A0 bytes in WRAM to use for OAM, that why there 
+    ; isnt garbage ram data populated in OAM by default
+.blankGarbageData
+    ld b, $00;
+    ld hl, wOAMBufferStart;
+    ld de, wOAMBufferEnd - wOAMBufferStart;
+    call memfill;
+
+    ; Set Stack pointer to low ram
+    ld sp, $e000
+    ; Init BG pallete
+    ld a, %11100100
+    ld [rBGP], a
+
+    ; Set Sprite pallete
+    ld a, %11100100
+    ld [rOBP0],a
+
+    ; Set BG scroll to 0 ,0 
+    xor a ; ld a, 0
+    ld [rSCX], a
+    ld [rSCY], a
+
+    ;test -todo remove
+    ld [hTestMain],a
+    ld [hTestWait],a
+    ld [hTestVar],a
+
+    ; Shut sound down
+    ld [rNR52], a
+
+    ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
+    ;TODO ---- TEMP DISABLE SPRITES
+    ;ld a, %10000111
+    ld a, %10000001
+    ld [rLCDC], a
+
+     ;  should jump to a game loop instead of infinite
+
+     ; lets try to copy sprite OAM to ram
+    ld hl, $C000
+    ld bc, OamMirror
+    ld de, OamMirrorEnd - OamMirror
+    call memcpy
+
+    ;move DMA subroutine to HRAM
+    call CopyDMARoutine
+
+    ;; TODO- work on getting the interrupt firing outside of main loop
+     
+   
+    ; mask all interrupts besides VBLANK for now
+  
+    ; the interrupt flags are at FF0F, not sure how to 'handle' these.... right now
+
+    ;Enable interrupts
+    ld a, %00000001
+    ld [$ffff], a
+    ei
+
+MainGameLoop::
+
+    ld a, [hTestMain]
+    inc a
+    ld [hTestMain],a
+    
+    ;; grab our new inputs
+    call checkRawJoypadInput    
+    call handleCurrentInputs
+    
+
+    rst wait_vblank ; wait for vblank
+
+    jp MainGameLoop ; return to top
+
+
+SECTION "Sprites", ROM0
+
+dummySprite:
+INCBIN "gfx/dummy.bin"
+dummySpriteEnd:
+
+section "BinGfx", ROM0 [$0f00]   ; I left this undefined and it placed it in a position where the first byte was getting overwritten after boot?
+BgTiles:
+INCBIN "gfx/test_gb.bin"
+endBgTiles:
+
+BgTileMap:
+INCBIN "gfx/test_gb.map.bin"
+EndBgTileMap:
+
+
+
+
+SECTION "OAMMirrorInit", ROM0
+OamMirror:
+    db $30, $30, $00, $00  ;y- loc, x - loc, tile #,  flags , 
+    db $30, $38, $02, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $40, $38, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+OamMirrorEnd:
+
+
+
+handleCurrentInputs::
+   
+    ld a, [hJoypadHeld]
+    cp %00000000 ;; check for nothing
+    ret z
+
+    and %11110000
+    cp %00000000 ;; check for nothing
+    jr z, .checkButtonPresses
+
+    ld a, [hJoypadHeld]
+    bit 7, a
+    ;call nz, moveSpriteDown
+
+    ld a, [hJoypadHeld]
+    bit 6, a
+    ;call nz, moveSpriteUp
+
+    ld a, [hJoypadHeld]
+    bit 5, a
+    ;call nz, moveSpriteLeft
+
+    ld a, [hJoypadHeld]
+    bit 4, a
+    ;call nz, moveSpriteRight
+
+.checkButtonPresses
+
+    ld a,[hJoypadPressed]
+
+    ;B Button
+    bit 1, a
+    call nz, swapWindows
+
+    ret

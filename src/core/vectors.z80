@@ -1,0 +1,50 @@
+INCLUDE "hardware.inc"
+INCLUDE "src/memory/hram.z80"
+
+;Defined location in vector_labels
+SECTION "rst30", ROM0[$0030]
+waitVBlank::
+    ld a, %00000001
+    ld [hVBlankWaitFlag], a ; sets flag
+.vblankwait
+    halt 
+    jr .vblankwait
+
+section "vBlankInt", ROM0[$0040]
+; 6 bytes of space
+    push af
+    jp vBlankHandler
+
+section "vBlankHandler", ROM0
+vBlankHandler::
+
+    ;;Set interrupt flags....
+    ld a, %00000001
+    ld [$ffff], a
+
+;; This is where we should handle audio output and game input 
+
+    ; this needs to happen before vblank reenable
+   call hOAMDMA
+
+  
+
+;check where we need to jump to. if flag is true, restart main loop.
+    ld a, [hVBlankWaitFlag]
+    cp %00000001
+    jr z, .restartMainLoop
+
+;return to previous execution if not finished
+    pop af
+    reti 
+
+; ;else we jump back to main
+.restartMainLoop
+    ld a, %00000001
+    ld [$ffff], a
+    xor a
+    ld [hVBlankWaitFlag], a
+    ei
+    pop af  ; this is to clear the "push" for when we return to execution
+    pop af  ; this pop chages your return address from the loop execution to the main loop
+    reti 
