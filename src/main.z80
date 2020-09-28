@@ -3,11 +3,8 @@ INCLUDE "src/memory/hram.z80"
 INCLUDE "src/memory/wram.z80"
 INCLUDE "src/memory/vector_labels.z80"
 
-INCLUDE "gfx/table_prototype.z80"
 INCLUDE "gfx/tileset_1.z80"
 
-; We need to replace - 
-; Pinball tiles - tile map 
 
 SECTION "Header", ROM0[$100]
 EntryPoint: ;
@@ -77,16 +74,20 @@ Start:
     ld [hTestWait],a
     ld [hTestVar],a
 
-    ; Shut sound down
-    ld [rNR52], a
-
     ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
     ;TODO ---- TEMP DISABLE SPRITES
     ;ld a, %10000111
     ld a, %10000001
     ld [rLCDC], a
 
-     ;  should jump to a game loop instead of infinite
+
+  
+    ;Turn sound on
+    ld a, %11111111
+    ld [rNR52], a  ; master on/off, should ignore all bits other than 7
+    ld [rNR50], a  ; set channel volumes to max for L/R channels
+    ld [rNR51], a  ; sets all 4 channels on for both L
+
 
      ; lets try to copy sprite OAM to ram
     ld hl, $C000
@@ -131,7 +132,8 @@ dummySprite:
 INCBIN "gfx/dummy.bin"
 dummySpriteEnd:
 
-section "BinGfx", ROM0 [$0f00]   ; I left this undefined and it placed it in a position where the first byte was getting overwritten after boot?
+  ; I left this undefined and it placed it in a where the first byte was getting overwritten after boot?
+section "BinGfx", ROM0 [$0f00] 
 BgTiles:
 INCBIN "gfx/test_gb.bin"
 endBgTiles:
@@ -153,6 +155,7 @@ OamMirrorEnd:
 
 
 
+section "InputHandlers", ROM0 [$3000]
 handleCurrentInputs::
    
     ld a, [hJoypadHeld]
@@ -163,18 +166,22 @@ handleCurrentInputs::
     cp %00000000 ;; check for nothing
     jr z, .checkButtonPresses
 
+    ;DOWN
     ld a, [hJoypadHeld]
     bit 7, a
     ;call nz, moveSpriteDown
 
+    ;UP
     ld a, [hJoypadHeld]
     bit 6, a
-    ;call nz, moveSpriteUp
+    call nz, testSound
 
+    ;LEFT
     ld a, [hJoypadHeld]
     bit 5, a
     ;call nz, moveSpriteLeft
 
+    ;RIGHT
     ld a, [hJoypadHeld]
     bit 4, a
     ;call nz, moveSpriteRight
@@ -182,9 +189,28 @@ handleCurrentInputs::
 .checkButtonPresses
 
     ld a,[hJoypadPressed]
-
     ;B Button
-    bit 1, a
-    call nz, swapWindows
+   ; bit 1, a
+   ; call nz, swapWindows
 
+    ret
+
+
+testSound::
+
+    ld a,[rNR52]
+    bit 1, a ; checks sound channel 2
+    jp nz, .endTestSound ; let sound finish if started.
+    
+    ld a, %10110011  ;; duty cycle 50%, max duration (63.. time units?)
+    ld [rNR21], a ; into channel 2 (tone)
+
+    ld a, %10111010 ; set envelope, dont envelope
+    ld [rNR22], a
+
+    xor a 
+    ld [rNR23], a ;; lower 8 bits of frequency. blanking for now, I just want to hear sound first
+    ld a, %11000110 ; start playing, counter/consecutive selection?, null x3, freq high bits
+    ld [rNR24], a  
+.endTestSound  
     ret
