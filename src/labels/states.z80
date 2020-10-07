@@ -1,0 +1,6 @@
+
+;these change the system state  -   hGameState EQU $FF80
+SYSSTATE_TITLE EQU 0;
+SYSSTATE_LOADING EQU 1;
+SYSSTATE_GAMEPLAY EQU 2;
+SYSTATE_PAUSED EQU 3;

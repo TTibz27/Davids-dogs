@@ -1,5 +1,5 @@
 INCLUDE "hardware.inc"
-INCLUDE "src/memory/hram.z80"
+INCLUDE "src/labels/hram.z80"
 
 ;Defined location in vector_labels
 SECTION "rst30", ROM0[$0030]
@@ -25,10 +25,17 @@ vBlankHandler::
 ;; This is where we should handle audio output and game input 
 
     ; this needs to happen before vblank reenable
+    ;copies OAMmirror to OAM
+   ld a, $C0
+
    call hOAMDMA
 
-  
+;; This is where we should handle grabbing inputs.
+; Any inputs that need to happen immediately regardless of delayed frames should be handled with an interrupt
+    call checkRawJoypadInput
 
+; This is where we should eventually handle playing the current soundeffects /BGM
+  
 ;check where we need to jump to. if flag is true, restart main loop.
     ld a, [hVBlankWaitFlag]
     cp %00000001
@@ -46,5 +53,5 @@ vBlankHandler::
     ld [hVBlankWaitFlag], a
     ei
     pop af  ; this is to clear the "push" for when we return to execution
-    pop af  ; this pop chages your return address from the loop execution to the main loop
+    pop af  ; this pop changes your return address from the loop execution to the main loop
     reti 

@@ -1,7 +1,8 @@
 INCLUDE "hardware.inc"
-INCLUDE "src/memory/hram.z80"
-INCLUDE "src/memory/wram.z80"
-INCLUDE "src/memory/vector_labels.z80"
+INCLUDE "src/labels/hram.z80"
+INCLUDE "src/labels/wram.z80"
+INCLUDE "src/labels/vector_labels.z80"
+INCLUDE "src/labels/states.z80"
 
 INCLUDE "gfx/tileset_1.z80"
 
@@ -13,39 +14,36 @@ REPT $150 - $104
     db 0
 ENDR
 
+  ; I left this undefined and it placed it in a where the first byte was getting overwritten after boot?
+section "BinGfx", ROM0 [$0f00] 
+BgTiles::
+INCBIN "gfx/test_gb.bin"
+endBgTiles::
+
+BgTileMap::
+INCBIN "gfx/test_gb.map.bin"
+EndBgTileMap::
+
+TitleBgTiles::
+INCBIN "gfx/title.bin"
+EndTitleBgTiles::
+
+TitleBgMap::
+INCBIN "gfx/title.map.bin"
+EndTitleBgMap::
+
+
+;-----------------------------------------------------------------------------
+
 SECTION "Game Init", ROM0
 
 Start:
      di ;disable interupts while initializing
 
     ;wait for
-    call initWaitVBlank
-    xor a ; ld a, 0 ; We only need to reset a value with bit 7 reset, but 0 does the job
-    ld [rLCDC], a ; We will have to write to LCDC again later, so it's not a bother, really.
 
-    ; initialize flags to zero
-    ld [hVBlankWaitFlag], a
    
-.copyTiles
-    ld de, endBgTiles - BgTiles ; size of tiles?
-    ld bc, BgTiles
-    ld hl, $9000 ; vram
-    
-    call memcpy; 
-
-.copyTileMap ;  this loads the tile map! 
-    ld hl, $9800 ; move to top left of tile map
-    ld b, $14 ;; width of screen in hex
-    ld c, $12 ; height of screen in hex
-    ld de, BgTileMap
-    call smallTileMapCopy
-
-.copySprites
-    ld hl, $8000
-    ld bc, Tile_Set_1
-    ld de,  $01FF 
-    call memcpy
-
+     
     ; blank A0 bytes in WRAM to use for OAM, that why there 
     ; isnt garbage ram data populated in OAM by default
 .blankGarbageData
@@ -56,55 +54,21 @@ Start:
 
     ; Set Stack pointer to low ram
     ld sp, $e000
-    ; Init BG pallete
-    ld a, %11100100
-    ld [rBGP], a
 
-    ; Set Sprite pallete
-    ld a, %11100100
-    ld [rOBP0],a
-
-    ; Set BG scroll to 0 ,0 
-    xor a ; ld a, 0
-    ld [rSCX], a
-    ld [rSCY], a
-
-    ;test -todo remove
-    ld [hTestMain],a
-    ld [hTestWait],a
-    ld [hTestVar],a
-
-    ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
-    ;TODO ---- TEMP DISABLE SPRITES
-    ;ld a, %10000111
-    ld a, %10000001
-    ld [rLCDC], a
-
-
-  
     ;Turn sound on
     ld a, %11111111
     ld [rNR52], a  ; master on/off, should ignore all bits other than 7
     ld [rNR50], a  ; set channel volumes to max for L/R channels
-    ld [rNR51], a  ; sets all 4 channels on for both L
-
-
-     ; lets try to copy sprite OAM to ram
-    ld hl, $C000
-    ld bc, OamMirror
-    ld de, OamMirrorEnd - OamMirror
-    call memcpy
+    ld [rNR51], a  ; sets all 4 channels on for both L/R
 
     ;move DMA subroutine to HRAM
     call CopyDMARoutine
 
-    ;; TODO- work on getting the interrupt firing outside of main loop
-     
-   
-    ; mask all interrupts besides VBLANK for now
-  
-    ; the interrupt flags are at FF0F, not sure how to 'handle' these.... right now
+    ; INITIALIZE TITLE SCREEN STATE
+    call INIT_TITLE;
 
+    ; mask all interrupts besides VBLANK for now
+    ; the interrupt flags are at FF0F, not sure how to 'handle' these.... right now
     ;Enable interrupts
     ld a, %00000001
     ld [$ffff], a
@@ -112,18 +76,23 @@ Start:
 
 MainGameLoop::
 
+    ;; this just writes to make sure we are still running
     ld a, [hTestMain]
     inc a
     ld [hTestMain],a
     
-    ;; grab our new inputs
-    call checkRawJoypadInput    
+    ;; handle our new inputs , different calls depending on state?
     call handleCurrentInputs
     
+    ld a, [hSystemState]
+    cp SYSSTATE_TITLE
+    jp z, TITLE_LOOP
 
+
+
+EndMainGameLoop::;
     rst wait_vblank ; wait for vblank
-
-    jp MainGameLoop ; return to top
+    jp MainGameLoop ; return to top, should actually never be called if wait_vblank works correctly, I feel safe if its there thou
 
 
 SECTION "Sprites", ROM0
@@ -132,32 +101,21 @@ dummySprite:
 INCBIN "gfx/dummy.bin"
 dummySpriteEnd:
 
-  ; I left this undefined and it placed it in a where the first byte was getting overwritten after boot?
-section "BinGfx", ROM0 [$0f00] 
-BgTiles:
-INCBIN "gfx/test_gb.bin"
-endBgTiles:
-
-BgTileMap:
-INCBIN "gfx/test_gb.map.bin"
-EndBgTileMap:
-
-
-
 
 SECTION "OAMMirrorInit", ROM0
-OamMirror:
+OamMirror::
     db $30, $30, $00, $00  ;y- loc, x - loc, tile #,  flags , 
     db $30, $38, $02, $00  ;y- loc, x - loc, tile #,  flags ,
     db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
     db $40, $38, $06, $00  ;y- loc, x - loc, tile #,  flags ,
-OamMirrorEnd:
+OamMirrorEnd::
 
 
 
 section "InputHandlers", ROM0 [$3000]
 handleCurrentInputs::
-   
+    ;; this function should be changed/reimplemented??? depending on the state of the game
+
     ld a, [hJoypadHeld]
     cp %00000000 ;; check for nothing
     ret z
@@ -174,7 +132,7 @@ handleCurrentInputs::
     ;UP
     ld a, [hJoypadHeld]
     bit 6, a
-    call nz, testSound
+    ;call nz, testSound
 
     ;LEFT
     ld a, [hJoypadHeld]
@@ -197,7 +155,6 @@ handleCurrentInputs::
 
 
 testSound::
-
     ld a,[rNR52]
     bit 1, a ; checks sound channel 2
     jp nz, .endTestSound ; let sound finish if started.

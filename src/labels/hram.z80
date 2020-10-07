@@ -1,4 +1,14 @@
 
+
+
+;;;;;;;;;;;; EVerything lower than FF88 is reserved for DMA COPY ADDRESS
+hTestMain equ $FF89
+hTestWait equ $FF8A
+
+hSystemState EQU $FF90
+hTestVar EQU $FF91
+
+
 hVBlankWaitFlag EQU $FFB0
 
 ;we will define the joypad settings in HRAM so that it can be accessed faster by using ldh vs ld
@@ -11,7 +21,3 @@ hJoypadInput    EQU $FFB5
 hDisableJoypadPolling EQU $FFB6
 
 
-
-hTestVar EQU $FF85
-hTestMain equ $FF89
-hTestWait equ $FF8A

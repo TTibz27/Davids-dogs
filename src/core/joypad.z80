@@ -1,4 +1,4 @@
-INCLUDE "src/memory/hram.z80"
+INCLUDE "src/labels/hram.z80"
 
 SECTION "joypadHandlers", ROM0
 
