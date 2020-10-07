@@ -1,6 +1,7 @@
 INCLUDE "hardware.inc"
 INCLUDE "src/labels/hram.z80"
 INCLUDE "src/labels/vector_labels.z80"
+INCLUDE "src/labels/states.z80"
 SECTION "TitleScreenLogic", ROM0
 
 INIT_TITLE::
@@ -65,13 +66,13 @@ call initWaitVBlank
     ld bc, OamMirror
     ld de, OamMirrorEnd - OamMirror
     call memcpy
-  
 
     ;;
     ret
 
 ;----------------------- END INIT SEQUENCE ------------------------------------------
 
+;-----------------Start Game loop-----------------------
 TITLE_LOOP::
     ld a, [hJoypadHeld]
     bit 6, a
@@ -80,6 +81,71 @@ TITLE_LOOP::
     ld a, [hTestVar]
     inc a
     ld [hTestVar],a
+
+    ld a,[hJoypadPressed]
+    ;Start Button
+    bit 3, a
+    call nz, TITLE_TO_LEVEL_ONE
     
 
     jp EndMainGameLoop
+;---------------End Game loop --------------------------
+
+
+;------------State Transition Functions ---------------
+TITLE_TO_LEVEL_ONE::
+di
+
+call initWaitVBlank
+    xor a ; ld a, 0 ; We only need to reset a value with bit 7 reset, but 0 does the job
+    ld [rLCDC], a ; disables LCD display
+
+.copyTiles
+    ld de, EndBgTiles - BgTiles ; size of tiles
+    ld bc, BgTiles
+    ld hl, $9000 ; vram
+    
+    call memcpy; 
+
+.copyTileMap ; 
+    ld hl, $9800 ; move to top left of tile map
+    ld b, $14 ;; width of screen in hex
+    ld c, $12 ; height of screen in hex
+    ld de, BgTileMap
+    call smallTileMapCopy
+
+.copySprites
+    ld hl, $8000
+    ld bc, Tile_Set_1
+    ld de,  $01FF 
+    call memcpy
+
+    ; register a is still zero
+    ; initialize flags to zero
+    ld [hVBlankWaitFlag], a
+
+    ; Set BG scroll to 0 ,0 
+    ld [rSCX], a
+    ld [rSCY], a
+
+    ; Init BG pallete
+    ld a, %11100100
+    ld [rBGP], a
+
+    ; Set Sprite pallete
+    ld a, %11100100
+    ld [rOBP0],a
+
+       ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
+    ;TODO ---- TEMP DISABLE SPRITES
+    ;ld a, %10000111
+    ld a, %10000001
+    ld [rLCDC], a
+
+
+; set system state to 0 (title screen) as well
+    ld a, SYSSTATE_GAMEPLAY
+    ld [hSystemState],a
+
+ei
+ret

@@ -14,11 +14,13 @@ REPT $150 - $104
     db 0
 ENDR
 
+
+
   ; I left this undefined and it placed it in a where the first byte was getting overwritten after boot?
 section "BinGfx", ROM0 [$0f00] 
 BgTiles::
 INCBIN "gfx/test_gb.bin"
-endBgTiles::
+EndBgTiles::
 
 BgTileMap::
 INCBIN "gfx/test_gb.map.bin"
