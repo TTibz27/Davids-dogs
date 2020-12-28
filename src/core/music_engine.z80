@@ -64,9 +64,7 @@ MUSIC_FRAME_STEP::
     ret
 ;; determine what needs to be loaded into register
 .musicCommandLoop
-    ;; well here we fuckin go boys
 
-    
     ;get the current positon
     ld a, [music_current_offset_high]
     ld b, a
@@ -102,15 +100,15 @@ MUSIC_FRAME_STEP::
     ld a, c
     ld [music_current_offset_low] , a
 
-    ;; debug, should just show offset being incremented with this , EVERYTHING UP TO HERE SHOULD BE GOOD
-    ;;jr .musicCommandLoopExit
-
     ; now if D == 0 we add to wait timer and exit loop. if not then we load the register and start to the top
     ld a, d
     cp $00
     jr z, .musicCommandLoopExit
 
-    
+    ; if we hit the end of file marker, we set the offset to the correct val and then loop back, right now its always zero 
+    cp $FF 
+    jr z, .resetMusicOffset
+
 .loadNewCommandToRegister ;; ff + D = hl, [hl] = E
 
     ld a, e
@@ -118,6 +116,11 @@ MUSIC_FRAME_STEP::
     ld [$ff00+c], a ;; this command saved an assload of work I think...
     jr .musicCommandLoop
 
+.resetMusicOffset
+    ld a, $00
+    ld [music_current_offset_high], a
+    ld [music_current_offset_low], a
+    jr .musicCommandLoop
 
 .musicCommandLoopExit  ;; add to timer then bounce.
     ld a, e
@@ -148,10 +151,10 @@ music_current_offset_low:: ;c105
 SECTION "Song_1", ROMX, BANK[1]
 
 Song1Commands::
-INCBIN "music/test_12-23.cmd.bin"
+INCBIN "music/test_12-28.cmd.bin"
 EndSong1Commands::
 
 Song1Values::
-INCBIN "music/test_12-23.val.bin"
+INCBIN "music/test_12-28.val.bin"
 EndSong1Values::
 
