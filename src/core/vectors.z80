@@ -35,6 +35,8 @@ vBlankHandler::
     call checkRawJoypadInput
 
 ; This is where we should eventually handle playing the current soundeffects /BGM
+
+  call MUSIC_FRAME_STEP
   
 ;check where we need to jump to. if flag is true, restart main loop.
     ld a, [hVBlankWaitFlag]
@@ -51,7 +53,6 @@ vBlankHandler::
     ld [$ffff], a
     xor a
     ld [hVBlankWaitFlag], a
-    ei
     pop af  ; this is to clear the "push" for when we return to execution
     pop af  ; this pop changes your return address from the loop execution to the main loop
     reti 

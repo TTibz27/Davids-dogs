@@ -9,6 +9,17 @@ hSystemState EQU $FF90
 hTestVar EQU $FF91
 
 
+;I think $FFA0 - $FFAF would be good for audio variables0/
+
+;57frames/sec * 60 = 3420 frames per minute. 100 bpm = a beat on every 34.2 frames, eigth notes on every 4.2 or something like that.  
+hMusicFrameCounterHigh  equ $FFA0
+hMusicFrameCounterLow equ $FFA1
+hMusicAdjustedCounter  equ $FFA2
+
+
+
+
+
 hVBlankWaitFlag EQU $FFB0
 
 ;we will define the joypad settings in HRAM so that it can be accessed faster by using ldh vs ld

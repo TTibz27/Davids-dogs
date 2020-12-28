@@ -1,0 +1,157 @@
+
+SECTION "Music Functions", ROM0
+ 
+INIT_MUSIC::
+;; register B must contain the index of the song that is initialized.
+    xor a  ;; Not sure if there is a bounce or if number of instructions are wonky, but two xor
+    ld a, $00  ;; XOR A doesnt give zero always here, WHYYYYY
+    ld [music_current_offset_low], a 
+    ld [music_current_offset_high], a 
+
+       
+    ld a, $01
+    ld [music_wait_timer], a
+
+    ld a ,b
+    cp 0
+    jr z, .song0SetAddr  
+    cp 1
+    jr z, .song2SetAddr
+
+    ;;ERROR STATE
+    ld a, $27
+    ld [music_enabled_bool], a
+
+    pop af
+    ret  ;; none found
+
+.song0SetAddr
+    ld hl, Song1Commands
+    ld a, h
+    ld [music_next_cmd_high], a
+    ld a, l
+    ld [music_next_cmd_low], a
+
+    ld hl, Song1Values
+    ld a, h
+    ld [music_next_val_high], a
+    ld a, l
+    ld [music_next_val_low], a
+
+    jp .start_playback
+
+.song2SetAddr
+
+    jp .start_playback
+
+.start_playback ;; this should be fine if it is non-zero
+    ld a, $ff
+    ld [music_enabled_bool], a
+    ret
+
+
+MUSIC_FRAME_STEP::
+;; is music enabled?  play if there is a number
+    ld a, [music_enabled_bool]
+    cp 0
+    ret z
+ ;; are we still waiting?
+    ld a, [music_wait_timer]
+    cp 0
+    jr z , .musicCommandLoop ;; if we are at zero, start the command loop, else dec that value and return 
+    dec a
+    ld [music_wait_timer], a
+    ret
+;; determine what needs to be loaded into register
+.musicCommandLoop
+    ;; well here we fuckin go boys
+
+    
+    ;get the current positon
+    ld a, [music_current_offset_high]
+    ld b, a
+    ld a, [music_current_offset_low]
+    ld c, a
+
+    ;; get the address of the command of song 
+    ld a , [music_next_cmd_high]
+    ld h, a
+    ld a, [music_next_cmd_low]
+    ld l ,a 
+    
+    add hl, bc ; hl = hl + bc 
+
+    ; store value of command in D
+    ld a, [hl]
+    ld d , a
+
+    ;now get val for register, save to E
+    ld a , [music_next_val_high]
+    ld h, a
+    ld a, [music_next_val_low]
+    ld l, a 
+    add hl, bc
+
+    ld a, [hl]
+    ld e, a
+    
+    ;d and e are all we needed so we should inc the offset then store it.
+    inc bc
+    ld a, b
+    ld [music_current_offset_high], a
+    ld a, c
+    ld [music_current_offset_low] , a
+
+    ;; debug, should just show offset being incremented with this , EVERYTHING UP TO HERE SHOULD BE GOOD
+    ;;jr .musicCommandLoopExit
+
+    ; now if D == 0 we add to wait timer and exit loop. if not then we load the register and start to the top
+    ld a, d
+    cp $00
+    jr z, .musicCommandLoopExit
+
+    
+.loadNewCommandToRegister ;; ff + D = hl, [hl] = E
+
+    ld a, e
+    ld c, d 
+    ld [$ff00+c], a ;; this command saved an assload of work I think...
+    jr .musicCommandLoop
+
+
+.musicCommandLoopExit  ;; add to timer then bounce.
+    ld a, e
+    ld [music_wait_timer], a
+    ret
+
+
+
+SECTION "SoundVariables", wram0[$C100]
+music_enabled_bool:: ;C0100
+    db
+music_wait_timer:: ;C101
+    db 
+music_next_cmd_high:: ;c102
+    db
+music_next_cmd_low:: ;c103
+    db
+music_next_val_high:: ;c104
+    db
+music_next_val_low:: ;c105
+    db
+music_current_offset_high::;c106
+    db
+music_current_offset_low:: ;c105
+    db
+
+
+SECTION "Song_1", ROMX, BANK[1]
+
+Song1Commands::
+INCBIN "music/test_12-23.cmd.bin"
+EndSong1Commands::
+
+Song1Values::
+INCBIN "music/test_12-23.val.bin"
+EndSong1Values::
+

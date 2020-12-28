@@ -54,6 +54,13 @@ Start:
     ld de, wOAMBufferEnd - wOAMBufferStart;
     call memfill;
 
+    ; I am going to do the same near c100 for debug purposes for music playback
+    ; ld b, $00;
+    ld hl, $C100;
+    ld de, $01FF;
+    call memfill;
+
+
     ; Set Stack pointer to low ram
     ld sp, $e000
 
@@ -62,6 +69,9 @@ Start:
     ld [rNR52], a  ; master on/off, should ignore all bits other than 7
     ld [rNR50], a  ; set channel volumes to max for L/R channels
     ld [rNR51], a  ; sets all 4 channels on for both L/R
+
+    xor a
+    ld [music_enabled_bool], a
 
     ;move DMA subroutine to HRAM
     call CopyDMARoutine
