@@ -1,4 +1,5 @@
 
+INCLUDE "src/labels/hram.z80"
 SECTION "Music Functions", ROM0
  
 INIT_MUSIC::
@@ -103,24 +104,93 @@ MUSIC_FRAME_STEP::
     ; now if D == 0 we add to wait timer and exit loop. if not then we load the register and start to the top
     ld a, d
     cp $00
-    jr z, .musicCommandLoopExit
+    jp z, .musicCommandLoopExit
 
     ; if we hit the end of file marker, we set the offset to the correct val and then loop back, right now its always zero 
     cp $FF 
-    jr z, .resetMusicOffset
+    jp z, .resetMusicOffset
 
 .loadNewCommandToRegister ;; ff + D = hl, [hl] = E
 
+    ; Check if music channel is disabled for sound effects
+    ld a, [hMusicChannelDisable]
+    cp $00
+    jp z, .loadNextCommand
+.sfxBit0
+    bit 0, a
+    jr z, .sfxBit1
+    ld a, d ; check command
+    cp $10  ;; if we find a match, restart loop since this channel is disabled.
+    jp z, .musicCommandLoop
+    cp $11
+    jp z, .musicCommandLoop
+    cp $12
+    jp z, .musicCommandLoop
+    cp $13
+    jp z, .musicCommandLoop
+    cp $14
+    jp z, .musicCommandLoop
+    ld a, [hMusicChannelDisable]
+.sfxBit1
+    bit 1, a
+    jr z, .sfxBit2
+    ld a, d ; check command
+    cp $16
+    jp z, .musicCommandLoop
+    cp $17
+    jp z, .musicCommandLoop
+    cp $18
+    jp z, .musicCommandLoop
+    cp $19
+    jp z, .musicCommandLoop
+
+    ld a, [hMusicChannelDisable]
+
+.sfxBit2
+    bit 2, a
+    jr z, .sfxBit3
+    ld a, d ; check command
+    cp $1A  ;; if we find a match, restart loop since this channel is disabled.
+    jp z, .musicCommandLoop
+    cp $1B
+    jp z, .musicCommandLoop
+    cp $1C
+    jp z, .musicCommandLoop
+    cp $1D
+    jp z, .musicCommandLoop
+    cp $1E
+    jp z, .musicCommandLoop
+
+    ld a, [hMusicChannelDisable]
+
+.sfxBit3
+    bit 3, a
+    jp z, .loadNextCommand
+    ld a, d ; check command
+    cp $20  
+    jp z, .musicCommandLoop
+    cp $21
+    jp z, .musicCommandLoop
+    cp $22
+    jp z, .musicCommandLoop
+    cp $23
+    jp z, .musicCommandLoop
+
+    ld a, [hMusicChannelDisable]
+    ; End sound effect check
+
+.loadNextCommand
     ld a, e
     ld c, d 
-    ld [$ff00+c], a ;; this command saved an assload of work I think...
-    jr .musicCommandLoop
+   
+    ld [$ff00+c], a ;; this command saved a lot of work I think...
+    jp .musicCommandLoop
 
 .resetMusicOffset
     ld a, $00
     ld [music_current_offset_high], a
     ld [music_current_offset_low], a
-    jr .musicCommandLoop
+    jp .musicCommandLoop
 
 .musicCommandLoopExit  ;; add to timer then bounce.
     ld a, e

@@ -70,8 +70,10 @@ Start:
     ld [rNR50], a  ; set channel volumes to max for L/R channels
     ld [rNR51], a  ; sets all 4 channels on for both L/R
 
+    ;Music params
     xor a
     ld [music_enabled_bool], a
+    ld [hMusicChannelDisable], a
 
     ;move DMA subroutine to HRAM
     call CopyDMARoutine
