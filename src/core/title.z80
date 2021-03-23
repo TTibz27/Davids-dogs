@@ -24,12 +24,7 @@ call initWaitVBlank
     ld de, TitleBgMap
     call smallTileMapCopy
 
-.copySprites
-    ld hl, $8000
-    ld bc, Tile_Set_1
-    ld de,  $01FF 
-    call memcpy
-
+    call loadPlayerSpriteToVRAM
     ; register a is still zero
     ; initialize flags to zero
     ld [hVBlankWaitFlag], a
@@ -106,7 +101,7 @@ TITLE_LOOP::
 TITLE_TO_LEVEL_ONE::
 di
 
-call initWaitVBlank
+    call initWaitVBlank
     xor a ; ld a, 0 ; We only need to reset a value with bit 7 reset, but 0 does the job
     ld [rLCDC], a ; disables LCD display
 
@@ -123,12 +118,6 @@ call initWaitVBlank
     ld c, $12 ; height of screen in hex
     ld de, BgTileMap
     call smallTileMapCopy
-
-.copySprites
-    ld hl, $8000
-    ld bc, Tile_Set_1
-    ld de,  $01FF 
-    call memcpy
 
     ; register a is still zero
     ; initialize flags to zero
@@ -149,7 +138,7 @@ call initWaitVBlank
        ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
     ;TODO ---- TEMP DISABLE SPRITES
     ;ld a, %10000111
-    ld a, %10000001
+    ld a, %10000111
     ld [rLCDC], a
 
     ; set bgm

@@ -87,8 +87,6 @@ smallTileMapCopy:: ; This function should be used to fill in < 32 * 32 tiles scr
    ret
 
 
-  ld A, B ; use width to determine when to jump to next row
-
 section "TileCopyRAM", wram0
 TileMapCopyWidth::
   db

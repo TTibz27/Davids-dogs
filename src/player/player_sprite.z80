@@ -1,0 +1,27 @@
+INCLUDE "hardware.inc"
+
+SECTION "PlayerSprite", ROM0
+drawPlayerSprite::
+    ; DE = block size
+    ; BC = source address
+    ; HL = destination address
+    ; dec DE
+    ld hl, $C000  ; This is the OAM Mirror address, it should probably exist in hardware defines
+    ld bc, test_oam_sprite
+    ld de, test_oam_sprite_end - test_oam_sprite
+    call memcpy
+    ret 
+
+loadPlayerSpriteToVRAM::
+    ld hl, $8000
+    ld bc, HockeyGuyIdleSprites
+    ld de,  $01FF 
+    call memcpy
+    ret 
+
+test_oam_sprite::
+    db $30, $30, $00, $00  ;y- loc, x - loc, tile #,  flags , 
+    db $30, $38, $02, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $40, $38, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+test_oam_sprite_end::
