@@ -34,6 +34,16 @@ TitleBgMap::
 INCBIN "gfx/title.map.bin"
 EndTitleBgMap::
 
+HockeyGuyIdleSprites::
+INCBIN "gfx/hockey-guy-idle.bin"
+EndHockeyGuyIdleSprites::
+
+HockeyGuySkateSprites::
+INCBIN "gfx/hockey-guy-skate.bin"
+EndHockeyGuySkateSprites::
+
+
+
 
 ;-----------------------------------------------------------------------------
 
@@ -82,7 +92,7 @@ Start:
     call INIT_TITLE;
 
     ; mask all interrupts besides VBLANK for now
-    ; the interrupt flags are at FF0F, not sure how to 'handle' these.... right now
+    ; the interrupt flags are at FF0F, not sure what others are needed right now
     ;Enable interrupts
     ld a, %00000001
     ld [$ffff], a
