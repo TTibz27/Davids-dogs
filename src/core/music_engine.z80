@@ -214,7 +214,7 @@ music_next_val_low:: ;c105
     db
 music_current_offset_high::;c106
     db
-music_current_offset_low:: ;c105
+music_current_offset_low:: ;c107
     db
 
 

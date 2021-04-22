@@ -34,9 +34,13 @@ TitleBgMap::
 INCBIN "gfx/title.map.bin"
 EndTitleBgMap::
 
-HockeyGuyIdleSprites::
-INCBIN "gfx/hockey-guy-idle.bin"
-EndHockeyGuyIdleSprites::
+HockeyGuyIdleSprite::
+INCBIN "gfx/hockeyguy-idle-single.bin"
+EndHockeyGuyIdleSprite::
+
+HockeyGuyEyes::
+    INCBIN "gfx/hockeyguy-eyes.bin"
+EndHockeyGuyEyes::
 
 HockeyGuySkateSprites::
 INCBIN "gfx/hockey-guy-skate.bin"
@@ -106,7 +110,10 @@ MainGameLoop::
     ld [hTestMain],a
     
     ;; handle our new inputs , different calls depending on state?
-    call handleCurrentInputs
+    call handleInputsForPlayerObject
+
+    ;debug
+    call drawPlayerSprite
     
     ld a, [hSystemState]
     cp SYSSTATE_TITLE

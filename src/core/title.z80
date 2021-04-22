@@ -24,7 +24,7 @@ call initWaitVBlank
     ld de, TitleBgMap
     call smallTileMapCopy
 
-    call loadPlayerSpriteToVRAM
+
     ; register a is still zero
     ; initialize flags to zero
     ld [hVBlankWaitFlag], a
@@ -127,6 +127,12 @@ di
     ld [rSCX], a
     ld [rSCY], a
 
+
+
+.initPlayer
+    call initPlayerObject
+
+.initScreen
     ; Init BG pallete
     ld a, %11100100
     ld [rBGP], a
@@ -134,12 +140,17 @@ di
     ; Set Sprite pallete
     ld a, %11100100
     ld [rOBP0],a
+    ld a, %11010010
+    ld [rOBP1],a
 
        ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
     ;TODO ---- TEMP DISABLE SPRITES
     ;ld a, %10000111
-    ld a, %10000111
+    ld a, %10000011
     ld [rLCDC], a
+
+    ; Update player sprite location
+    ;call drawPlayerSprite
 
     ; set bgm
     ld a, $0
