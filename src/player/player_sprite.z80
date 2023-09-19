@@ -114,7 +114,7 @@ drawPlayerSprite::
     ld a , d 
     sra a ; divide by 2, need to do this to force odds to round down
     sla a ; mult by  2 *2 *2  = 8 for bytes of offset
-    sla a ;
+    sla a ;  ;;;;;; TODO - Could this be optimized better using non-arithmatic shifts?  ;;;;;;;;;;;;;;;;;
     sla a ;
     add a, b
     ld [hli], a

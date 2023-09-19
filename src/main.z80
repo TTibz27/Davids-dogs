@@ -3,7 +3,6 @@ INCLUDE "src/labels/hram.z80"
 INCLUDE "src/labels/wram.z80"
 INCLUDE "src/labels/vector_labels.z80"
 INCLUDE "src/labels/states.z80"
-
 INCLUDE "gfx/tileset_1.z80"
 
 
@@ -80,14 +79,14 @@ Start:
 
     ;Turn sound on
     ld a, %11111111
-    ld [rNR52], a  ; master on/off, should ignore all bits other than 7
-    ld [rNR50], a  ; set channel volumes to max for L/R channels
-    ld [rNR51], a  ; sets all 4 channels on for both L/R
+    ldh [rNR52], a  ; master on/off, should ignore all bits other than 7
+    ldh [rNR50], a  ; set channel volumes to max for L/R channels
+    ldh [rNR51], a  ; sets all 4 channels on for both L/R
 
     ;Music params
     xor a
     ld [music_enabled_bool], a
-    ld [hMusicChannelDisable], a
+    ldh [hMusicChannelDisable], a
 
     ;move DMA subroutine to HRAM
     call CopyDMARoutine
@@ -99,13 +98,13 @@ Start:
     ; the interrupt flags are at FF0F, not sure what others are needed right now
     ;Enable interrupts
     ld a, %00000001
-    ld [$ffff], a
+    ldh [$ffff], a
     ei
 
 MainGameLoop::
 
     ;; this just writes to make sure we are still running
-    ld a, [hTestMain]
+    ldh a, [hTestMain]
     inc a
     ld [hTestMain],a
     

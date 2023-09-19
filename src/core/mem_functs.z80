@@ -47,7 +47,7 @@ smallTileMapCopy:: ; This function should be used to fill in < 32 * 32 tiles scr
     ; WARNING BAD THINGS WILL HAPPEN IF HEIGHT OR WIDTH ARE OVER 32
     ; B = width
     ;  C = height
-    ; DE = soruce address
+    ; DE = source address
     ; HL = changes to Map Space
   ;store width for next row
   ld a, b
@@ -85,6 +85,14 @@ smallTileMapCopy:: ; This function should be used to fill in < 32 * 32 tiles scr
 
 .tile_map_end
    ret
+
+;::wideMapCopy ;this will load the first 32 x 32 of a tile map grid, with the intent to scroll around 
+    ; B = width
+    ;  C = height
+    ; DE = source address
+    ; HL = changes to Map Space
+  ;store width for next row
+
 
 
 section "TileCopyRAM", wram0

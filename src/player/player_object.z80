@@ -26,7 +26,7 @@ handleInputsForPlayerObject::
     ld a, [player_position_viewport_x]
     ld c, a
 
-    ld a, [hJoypadHeld]
+    ldh a, [hJoypadHeld]
     cp %00000000 ;; check for nothing
     ret z
 
@@ -36,21 +36,21 @@ handleInputsForPlayerObject::
 
     ;DOWN
 .down_check
-    ld a, [hJoypadHeld]
+    ldh a, [hJoypadHeld]
     bit 7, a
     jp z, .up_check
     inc b
 
     ;UP
 .up_check    
-    ld a, [hJoypadHeld]
+    ldh a, [hJoypadHeld]
     bit 6, a
     jp z, .left_check
     dec b
 
     ;LEFT
 .left_check
-    ld a, [hJoypadHeld]
+    ldh a, [hJoypadHeld]
     bit 5, a
     jp z, .right_check
     dec c
@@ -58,7 +58,7 @@ handleInputsForPlayerObject::
 
     ;RIGHT
 .right_check
-    ld a, [hJoypadHeld]
+    ldh a, [hJoypadHeld]
     bit 4, a
     jp z, .update_viewport_pos
     inc c
@@ -72,7 +72,7 @@ handleInputsForPlayerObject::
 
 .checkButtonPresses
 
-    ld a,[hJoypadPressed]
+    ldh a,[hJoypadPressed]
     ;B Button
    ; bit 1, a
    ; call nz, swapWindows
