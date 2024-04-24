@@ -9,14 +9,11 @@ INCLUDE "gfx/tileset_1.z80"
 SECTION "Header", ROM0[$100]
 EntryPoint: ;
     jp Start ;  
-REPT $150 - $104
-    db 0
-ENDR
+    ds $150 - @, 0 ; room for header
 
 
 
-  ; I left this undefined and it placed it in a where the first byte was getting overwritten after boot?
-section "BinGfx", ROM0 [$0f00] 
+section "BinGfx", ROM0 
 BgTiles::
 INCBIN "gfx/test_gb.bin"
 EndBgTiles::
@@ -45,20 +42,13 @@ HockeyGuySkateSprites::
 INCBIN "gfx/hockey-guy-skate.bin"
 EndHockeyGuySkateSprites::
 
-
-
-
 ;-----------------------------------------------------------------------------
-
 SECTION "Game Init", ROM0
 
 Start:
      di ;disable interupts while initializing
 
     ;wait for
-
-   
-     
     ; blank A0 bytes in WRAM to use for OAM, that why there 
     ; isnt garbage ram data populated in OAM by default
 .blankGarbageData
