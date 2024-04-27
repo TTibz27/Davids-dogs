@@ -12,14 +12,17 @@ EntryPoint: ;
     ds $150 - @, 0 ; room for header
 
 
-
+;-----------------------------------------------------------------------------
+; Graphics Defs
+;-----------------------------------------------------------------------------
+;; -------------- Background GFX ----------------------
 section "BinGfx", ROM0 
 BgTiles::
-INCBIN "gfx/test_gb.bin"
+INCBIN "gfx/daves-dogs.bin"
 EndBgTiles::
 
 BgTileMap::
-INCBIN "gfx/test_gb.map.bin"
+INCBIN "gfx/daves-dogs.map.bin"
 EndBgTileMap::
 
 TitleBgTiles::
@@ -30,18 +33,15 @@ TitleBgMap::
 INCBIN "gfx/title.map.bin"
 EndTitleBgMap::
 
-HockeyGuyIdleSprite::
-INCBIN "gfx/hockeyguy-idle-single.bin"
-EndHockeyGuyIdleSprite::
+;; ----------------Sprite GFX --------------------------
 
-HockeyGuyEyes::
-    INCBIN "gfx/hockeyguy-eyes.bin"
-EndHockeyGuyEyes::
+    TimerSprites::
+    incbin "gfx/ticker-clock.bin"
+    EndTimerSprites::
 
-HockeyGuySkateSprites::
-INCBIN "gfx/hockey-guy-skate.bin"
-EndHockeyGuySkateSprites::
 
+;-----------------------------------------------------------------------------
+; Game init
 ;-----------------------------------------------------------------------------
 SECTION "Game Init", ROM0
 
@@ -98,12 +98,14 @@ MainGameLoop::
     inc a
     ld [hTestMain],a
     
+    ;; No traditional player input in this game! commenting out for now, easier to redo if I can see how I did it before
+    ; will delete 
     ;; handle our new inputs , different calls depending on state?
-    call handleInputsForPlayerObject
-
+   ; call handleInputsForPlayerObject
     ;debug
-    call drawPlayerSprite
+    ;call drawPlayerSprite
     
+    ;use this section to control the current game loops contained in "Screens"
     ld a, [hSystemState]
     cp SYSSTATE_TITLE
     jp z, TITLE_LOOP
@@ -112,7 +114,7 @@ MainGameLoop::
 
 EndMainGameLoop::;
     rst wait_vblank ; wait for vblank
-    jp MainGameLoop ; return to top, should actually never be called if wait_vblank works correctly, I feel safe if its there thou
+    jp MainGameLoop ; return to top, should actually never be called if wait_vblank works correctly, I feel safe if its there tho
 
 
 SECTION "Sprites", ROM0

@@ -1,192 +1,192 @@
-INCLUDE "hardware.inc"
+; INCLUDE "hardware.inc"
 
-SECTION "PlayerSprite", ROM0
-drawPlayerSprite::
+; SECTION "PlayerSprite", ROM0
+; drawPlayerSprite::
 
-    ; blank sprite oam buffer
-    ld b, $00;
-    ld hl, sprite_oam_buffer;
-    ld de, 64;sprite_oam_buffer_end - sprite_oam_buffer;
-    call memfill;
+;     ; blank sprite oam buffer
+;     ld b, $00;
+;     ld hl, sprite_oam_buffer;
+;     ld de, 64;sprite_oam_buffer_end - sprite_oam_buffer;
+;     call memfill;
 
-    ; load sprite into Sprite OAM Buffer
-    ld hl, sprite_oam_buffer
+;     ; load sprite into Sprite OAM Buffer
+;     ld hl, sprite_oam_buffer
 
-    ld a, [player_position_viewport_y]
-    ld b, a
+;     ld a, [player_position_viewport_y]
+;     ld b, a
 
-    ld a, [player_position_viewport_x]
-    ld c, a
+;     ld a, [player_position_viewport_x]
+;     ld c, a
 
-    ;Determine what sprites to draw and direction
-    ld a, [player_draw_state_flags]
-    bit 0, a
-    jr  nz, .standingLeft
-    ;debug;  jr .standingLeft
+;     ;Determine what sprites to draw and direction
+;     ld a, [player_draw_state_flags]
+;     bit 0, a
+;     jr  nz, .standingLeft
+;     ;debug;  jr .standingLeft
     
 
-.standingRight
-.drawEyeSpriteRight 
-    ld a,b ; y
-    add a, 5
-    ld [hli], a ; load into hl, inc to next
-    ld a, c ; x
-    add a, 5
-    ld [hli], a  ; load into hl, inc to next
+; .standingRight
+; .drawEyeSpriteRight 
+;     ld a,b ; y
+;     add a, 5
+;     ld [hli], a ; load into hl, inc to next
+;     ld a, c ; x
+;     add a, 5
+;     ld [hli], a  ; load into hl, inc to next
 
-    ld a, $08 ; index of eyes, could probably do this in a non-hardcoded way somehow eventually
-    ld [hli], a 
+;     ld a, $08 ; index of eyes, could probably do this in a non-hardcoded way somehow eventually
+;     ld [hli], a 
 
-    ld a, %00010000 ; this needs to use the secondary color pallete
-    ld [hli], a 
+;     ld a, %00010000 ; this needs to use the secondary color pallete
+;     ld [hli], a 
 
-.prepDrawStandingRight
-    ld a, 0
-    ld d, a
-;using d as i, for (i =0, i < 8 , i++)
-.drawStandingRightSprite
-    ;sprite order is as follows
-    ; 0 | 1
-    ; 2 | 3
-    ; 4 | 5 
-    ; 6 | 7 
+; .prepDrawStandingRight
+;     ld a, 0
+;     ld d, a
+; ;using d as i, for (i =0, i < 8 , i++)
+; .drawStandingRightSprite
+;     ;sprite order is as follows
+;     ; 0 | 1
+;     ; 2 | 3
+;     ; 4 | 5 
+;     ; 6 | 7 
 
-    ; Y Value
-    ld a , d 
-    sra a ; divide by 2, need to do this to force odds to round down
-    sla a ; mult by  2 *2 *2  = 8 for bytes of offset
-    sla a ;
-    sla a ;
-    add a, b
-    ld [hli], a
+;     ; Y Value
+;     ld a , d 
+;     sra a ; divide by 2, need to do this to force odds to round down
+;     sla a ; mult by  2 *2 *2  = 8 for bytes of offset
+;     sla a ;
+;     sla a ;
+;     add a, b
+;     ld [hli], a
     
-    ;X Value
-    ld a, c
-    bit 0, d ; odd numbers are on the right
-    jr z, .skipPlayerXOffset
-    add a, 8
-.skipPlayerXOffset
-    ld [hli], a
+;     ;X Value
+;     ld a, c
+;     bit 0, d ; odd numbers are on the right
+;     jr z, .skipPlayerXOffset
+;     add a, 8
+; .skipPlayerXOffset
+;     ld [hli], a
 
-; sprite index, should actually just be D
-    ld a, d
-    ld [hli], a
-; flags, should all be zero
-    xor a
-    ld [hli], a
-; if we are < 8 loop back, or else continue drawing
-    inc d
-    ld a, d 
-    cp 8
-    jr c, .drawStandingRightSprite
-    jp .copySpriteOAMBuffer
+; ; sprite index, should actually just be D
+;     ld a, d
+;     ld [hli], a
+; ; flags, should all be zero
+;     xor a
+;     ld [hli], a
+; ; if we are < 8 loop back, or else continue drawing
+;     inc d
+;     ld a, d 
+;     cp 8
+;     jr c, .drawStandingRightSprite
+;     jp .copySpriteOAMBuffer
 
-.standingLeft
+; .standingLeft
 
-.drawEyeSpriteLeft
-    ld a,b ; y
-    add a, 5
-    ld [hli], a ; load into hl, inc to next
-    ld a, c ; x
-    add a, 3
-    ld [hli], a  ; load into hl, inc to next
+; .drawEyeSpriteLeft
+;     ld a,b ; y
+;     add a, 5
+;     ld [hli], a ; load into hl, inc to next
+;     ld a, c ; x
+;     add a, 3
+;     ld [hli], a  ; load into hl, inc to next
 
-    ld a, $08 ; index of eyes, could probably do this in a non-hardcoded way somehow eventually
-    ld [hli], a 
+;     ld a, $08 ; index of eyes, could probably do this in a non-hardcoded way somehow eventually
+;     ld [hli], a 
 
-    ld a, %00010000 ; this needs to use the secondary color pallete
-    or a, %00100000 ; for some reason loading that flag directly here breaks the assembler? idgi
-    ld [hli], a 
+;     ld a, %00010000 ; this needs to use the secondary color pallete
+;     or a, %00100000 ; for some reason loading that flag directly here breaks the assembler? idgi
+;     ld [hli], a 
 
-     ;sprite order is as follows
-    ; 1 | 0
-    ; 3 | 2
-    ; 5 | 4 
-    ; 7 | 6 
-.prepDrawStandingLeft
-    ld a, 0
-    ld d, a
+;      ;sprite order is as follows
+;     ; 1 | 0
+;     ; 3 | 2
+;     ; 5 | 4 
+;     ; 7 | 6 
+; .prepDrawStandingLeft
+;     ld a, 0
+;     ld d, a
 
 
 
-.drawStandingLeftSprite
-    ; Y Value
-    ld a , d 
-    sra a ; divide by 2, need to do this to force odds to round down
-    sla a ; mult by  2 *2 *2  = 8 for bytes of offset
-    sla a ;  ;;;;;; TODO - Could this be optimized better using non-arithmatic shifts?  ;;;;;;;;;;;;;;;;;
-    sla a ;
-    add a, b
-    ld [hli], a
+; .drawStandingLeftSprite
+;     ; Y Value
+;     ld a , d 
+;     sra a ; divide by 2, need to do this to force odds to round down
+;     sla a ; mult by  2 *2 *2  = 8 for bytes of offset
+;     sla a ;  ;;;;;; TODO - Could this be optimized better using non-arithmatic shifts?  ;;;;;;;;;;;;;;;;;
+;     sla a ;
+;     add a, b
+;     ld [hli], a
     
-   ;X Value
-   ld a, c
-   bit 0, d ; odd numbers are on the right
-   jr nz, .skipPlayerLeftXOffset
-   add a, 8
-.skipPlayerLeftXOffset
-   ld [hli], a    
+;    ;X Value
+;    ld a, c
+;    bit 0, d ; odd numbers are on the right
+;    jr nz, .skipPlayerLeftXOffset
+;    add a, 8
+; .skipPlayerLeftXOffset
+;    ld [hli], a    
 
 
-   ; sprite index, should  just be D
-   ld a, d
-   ld [hli], a
-; flags
-   ld a, %00100000 
-   ld [hli], a
-; if we are < 8 loop back, or else continue drawing
-   inc d
-   ld a, d 
-   cp 8
-   jr c, .drawStandingLeftSprite
-   jp .copySpriteOAMBuffer
+;    ; sprite index, should  just be D
+;    ld a, d
+;    ld [hli], a
+; ; flags
+;    ld a, %00100000 
+;    ld [hli], a
+; ; if we are < 8 loop back, or else continue drawing
+;    inc d
+;    ld a, d 
+;    cp 8
+;    jr c, .drawStandingLeftSprite
+;    jp .copySpriteOAMBuffer
 
     
 
-.copySpriteOAMBuffer
-    ; ld hl, sprite_oam_buffer  ; This is the OAM Mirror address, it should probably exist in hardware defines
-    ; ld bc, test_oam_sprite
-    ; ld de, test_oam_sprite_end - test_oam_sprite
-    ; call memcpy
+; .copySpriteOAMBuffer
+;     ; ld hl, sprite_oam_buffer  ; This is the OAM Mirror address, it should probably exist in hardware defines
+;     ; ld bc, test_oam_sprite
+;     ; ld de, test_oam_sprite_end - test_oam_sprite
+;     ; call memcpy
    
-    ld hl, $C000  ; This is the OAM Mirror address, it should probably exist in hardware defines
-    ld bc, sprite_oam_buffer
-    ld de, sprite_oam_buffer_end - sprite_oam_buffer
-    call memcpy
-    ret 
+;     ld hl, $C000  ; This is the OAM Mirror address, it should probably exist in hardware defines
+;     ld bc, sprite_oam_buffer
+;     ld de, sprite_oam_buffer_end - sprite_oam_buffer
+;     call memcpy
+;     ret 
 
-loadPlayerSpriteToVRAM::
-    ld hl, $8000
-    ld bc, HockeyGuyIdleSprite
-    ld de, EndHockeyGuyIdleSprite - HockeyGuyIdleSprite
-    call memcpy
+; loadPlayerSpriteToVRAM::
+;     ld hl, $8000
+;     ld bc, HockeyGuyIdleSprite
+;     ld de, EndHockeyGuyIdleSprite - HockeyGuyIdleSprite
+;     call memcpy
 
-  ;  ld hl, $8000 + (EndHockeyGuyIdleSprite - HockeyGuyIdleSprite) HL is already there. lol
-    ld bc, HockeyGuyEyes
-    ld de, EndHockeyGuyEyes - HockeyGuyEyes
-    call memcpy
+;   ;  ld hl, $8000 + (EndHockeyGuyIdleSprite - HockeyGuyIdleSprite) HL is already there. lol
+;     ld bc, HockeyGuyEyes
+;     ld de, EndHockeyGuyEyes - HockeyGuyEyes
+;     call memcpy
 
-   ; ld hl, $8000 + ((EndHockeyGuyIdleSprite - HockeyGuyIdleSprite) + (EndHockeyGuyEyes - HockeyGuyEyes))
-    ld bc, HockeyGuySkateSprites
-    ld de, EndHockeyGuySkateSprites - HockeyGuySkateSprites
-    call memcpy
+;    ; ld hl, $8000 + ((EndHockeyGuyIdleSprite - HockeyGuyIdleSprite) + (EndHockeyGuyEyes - HockeyGuyEyes))
+;     ld bc, HockeyGuySkateSprites
+;     ld de, EndHockeyGuySkateSprites - HockeyGuySkateSprites
+;     call memcpy
 
-    ret 
+;     ret 
 
-test_oam_sprite::
-    db $35, $35, $08, %00010000 ; eyes first to have highest priority pos +5
-    db $30, $30, $00, $00  ;y- loc, x - loc, tile #,  flags , 
-    db $30, $38, $01, $00  ;y- loc, x - loc, tile #,  flags ,
-    db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
-    db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
-    db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
-    db $40, $38, $05, $00  ;y- loc, x - loc, tile #,  flags ,
-    db $48, $30, $06, $00  ;y- loc, x - loc, tile #,  flags ,
-    db $48, $38, $07, $00  ;y- loc, x - loc, tile #,  flags ,
-test_oam_sprite_end::
+; test_oam_sprite::
+;     db $35, $35, $08, %00010000 ; eyes first to have highest priority pos +5
+;     db $30, $30, $00, $00  ;y- loc, x - loc, tile #,  flags , 
+;     db $30, $38, $01, $00  ;y- loc, x - loc, tile #,  flags ,
+;     db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
+;     db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
+;     db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
+;     db $40, $38, $05, $00  ;y- loc, x - loc, tile #,  flags ,
+;     db $48, $30, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+;     db $48, $38, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+; test_oam_sprite_end::
 
 
-SECTION "PlayerSpriteVars", WRAM0    
-sprite_oam_buffer::
-    ds 64;(4 * 16) ; I think we want 16 of the 40 OAM slots to be reserved for the player
-sprite_oam_buffer_end::
+; SECTION "PlayerSpriteVars", WRAM0    
+; sprite_oam_buffer::
+;     ds 64;(4 * 16) ; I think we want 16 of the 40 OAM slots to be reserved for the player
+; sprite_oam_buffer_end::

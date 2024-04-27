@@ -1,98 +1,98 @@
-INCLUDE "src/labels/hram.z80"
+; INCLUDE "src/labels/hram.z80"
 
-SECTION "InitPlayerObject", ROM0 
-initPlayerObject::
-    xor a 
-    ld [player_draw_state_flags], a
-    inc a
-    ld [player_game_state_flags], a
-    ;We should init player after level, and adjust where the player starts accordingly. 
-    ;for now lets just say like midscreen ish
-    ld a, $55
-    ld [player_position_viewport_x],a
-    ld [player_position_viewport_y],a
+; SECTION "InitPlayerObject", ROM0 
+; initPlayerObject::
+;     xor a 
+;     ld [player_draw_state_flags], a
+;     inc a
+;     ld [player_game_state_flags], a
+;     ;We should init player after level, and adjust where the player starts accordingly. 
+;     ;for now lets just say like midscreen ish
+;     ld a, $55
+;     ld [player_position_viewport_x],a
+;     ld [player_position_viewport_y],a
 
-    call loadPlayerSpriteToVRAM
-    ret
+;     call loadPlayerSpriteToVRAM
+;     ret
 
-SECTION "PlayerObjectHandleInputs", ROM0 
-handleInputsForPlayerObject::
-    ld a, [player_game_state_flags]
-    bit 0, a
-    ret z
+; SECTION "PlayerObjectHandleInputs", ROM0 
+; handleInputsForPlayerObject::
+;     ld a, [player_game_state_flags]
+;     bit 0, a
+;     ret z
 
-    ld a, [player_position_viewport_y]
-    ld b, a
-    ld a, [player_position_viewport_x]
-    ld c, a
+;     ld a, [player_position_viewport_y]
+;     ld b, a
+;     ld a, [player_position_viewport_x]
+;     ld c, a
 
-    ldh a, [hJoypadHeld]
-    cp %00000000 ;; check for nothing
-    ret z
+;     ldh a, [hJoypadHeld]
+;     cp %00000000 ;; check for nothing
+;     ret z
 
-    and %11110000
-    cp %00000000 ;; check for dpad
-    jp z, .checkButtonPresses
+;     and %11110000
+;     cp %00000000 ;; check for dpad
+;     jp z, .checkButtonPresses
 
-    ;DOWN
-.down_check
-    ldh a, [hJoypadHeld]
-    bit 7, a
-    jp z, .up_check
-    inc b
+;     ;DOWN
+; .down_check
+;     ldh a, [hJoypadHeld]
+;     bit 7, a
+;     jp z, .up_check
+;     inc b
 
-    ;UP
-.up_check    
-    ldh a, [hJoypadHeld]
-    bit 6, a
-    jp z, .left_check
-    dec b
+;     ;UP
+; .up_check    
+;     ldh a, [hJoypadHeld]
+;     bit 6, a
+;     jp z, .left_check
+;     dec b
 
-    ;LEFT
-.left_check
-    ldh a, [hJoypadHeld]
-    bit 5, a
-    jp z, .right_check
-    dec c
-    ;call nz, moveSpriteLeft
+;     ;LEFT
+; .left_check
+;     ldh a, [hJoypadHeld]
+;     bit 5, a
+;     jp z, .right_check
+;     dec c
+;     ;call nz, moveSpriteLeft
 
-    ;RIGHT
-.right_check
-    ldh a, [hJoypadHeld]
-    bit 4, a
-    jp z, .update_viewport_pos
-    inc c
-    ;call nz, moveSpriteRight
+;     ;RIGHT
+; .right_check
+;     ldh a, [hJoypadHeld]
+;     bit 4, a
+;     jp z, .update_viewport_pos
+;     inc c
+;     ;call nz, moveSpriteRight
 
-.update_viewport_pos
-    ld a, b
-    ld [player_position_viewport_y], a
-    ld a, c
-    ld [player_position_viewport_x], a
+; .update_viewport_pos
+;     ld a, b
+;     ld [player_position_viewport_y], a
+;     ld a, c
+;     ld [player_position_viewport_x], a
 
-.checkButtonPresses
+; .checkButtonPresses
 
-    ldh a,[hJoypadPressed]
-    ;B Button
-   ; bit 1, a
-   ; call nz, swapWindows
+;     ldh a,[hJoypadPressed]
+;     ;B Button
+;    ; bit 1, a
+;    ; call nz, swapWindows
 
-    ret
+;     ret
 
 
-SECTION "PlayerObjectVars", WRAM0 [$C200]   
-player_position_viewport_x::
-    db
-player_position_viewport_y::
-    db
-;;Should only be changed in the player object
-player_draw_state_flags:: ; these are flags that will pertain to how to draw the player sprite, IE, falling, running, direction
-    db
-    ; bit 0: flip along X axis
-    ; bit 1 : Y axis flip? might be cool
-    ; bit 7 : enable
+; SECTION "PlayerObjectVars", WRAM0 [$C200]   
+; player_position_viewport_x::
+;     db
+; player_position_viewport_y::
+;     db
+; ;;Should only be changed in the player object
+; player_draw_state_flags:: ; these are flags that will pertain to how to draw the player sprite, IE, falling, running, direction
+;     db
+;     ; bit 0: flip along X axis
+;     ; bit 1 : Y axis flip? might be cool
+;     ; bit 7 : enable
 
-;; Also should be local
-player_game_state_flags::
-    db
-    ;bit 0 : enable controls
+; ;; Also should be local
+; player_game_state_flags::
+;     db
+;     ;bit 0 : enable controls
