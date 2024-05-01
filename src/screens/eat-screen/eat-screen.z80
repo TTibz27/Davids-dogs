@@ -1,0 +1,122 @@
+INCLUDE "hardware.inc"
+INCLUDE "src/labels/hram.z80"
+INCLUDE "src/labels/vector_labels.z80"
+INCLUDE "src/labels/states.z80"
+
+SECTION "EatScreenLogic", ROM0
+
+INIT_EAT_SCREEN::
+    di
+    
+        call initWaitVBlank
+        xor a ; ld a, 0 ; We only need to reset a value with bit 7 reset, but 0 does the job
+        ld [rLCDC], a ; disables LCD display
+    
+;--------------------------load Background Tiles ---------------------
+    .copyTiles
+        ld de, EndBgTiles - BgTiles ; size of tiles
+        ld bc, BgTiles
+        ld hl, $9000 ; vram
+        
+        call memcpy; 
+    
+    .copyTileMap ; 
+        ld hl, $9800 ; move to top left of tile map
+        ld b, $14 ;; width of screen in hex
+        ld c, $12 ; height of screen in hex
+        ld de, BgTileMap
+        call smallTileMapCopy
+    
+        ; register a is still zero
+        ; initialize flags to zero
+        ld [hVBlankWaitFlag], a
+    
+        ; Set BG scroll to 0 ,0 
+        ld [rSCX], a
+        ld [rSCY], a
+
+
+
+;----------------------Sprites -------------------    
+    .initEatScreenSprites
+    ld hl, $8000  ; dest address in vram
+
+    ld bc, BlankTile
+    ld de, 16
+    call memcpy
+
+    ld bc, TimerSprites
+    ld de, EndTimerSprites - TimerSprites
+    call memcpy
+    ld bc, HotdogSprites 
+    ld de, EndHotdogSprites - HotdogSprites
+    call memcpy
+
+
+    ; ld hl, $8000  ; dest address in vram
+    ; ld bc, HockeyGuyIdleSprite
+    ; ld de, EndHockeyGuyIdleSprite - HockeyGuyIdleSprite
+    ; call memcpy
+    
+    
+    
+    ;.initPlayer
+     ;//   call initPlayerObject
+    
+    .initScreen
+        ; Init BG pallete
+        ld a, %11100100
+        ld [rBGP], a
+    
+        ; Set Sprite pallete
+        ld a, %11100100
+        ld [rOBP0],a
+        ld a, %11010010
+        ld [rOBP1],a
+    
+           ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
+        ;TODO ---- TEMP DISABLE SPRITES
+        ld a, %10000011
+        ;ld a, %10000001
+        ld [rLCDC], a
+    
+        ; Update player sprite location
+        ;call drawPlayerSprite
+    
+        ; set bgm
+        ld a, $0
+        ld b, a
+        call INIT_MUSIC
+    
+    ; set system state to gameplay
+        ld a, SYSSTATE_EATING_SCREEN
+        ld [hSystemState],a
+
+    ei
+    ret
+
+
+
+
+;---------------------------------START  GAMEPLAY LOOP--------------------------------------------
+EAT_SCREEN_LOOP::
+
+    ; rolling this to check that the loop is working correctly
+    ld hl, $c200
+    ld a, [hl]
+    inc a
+    ld [hl], a
+
+    call drawHotdogSprites
+
+
+jp EndMainGameLoop
+;------------------------------------END GAMEPLAY LOOP---------------------------------------------
+
+BlankTile::
+    DS 16, $00
+
+
+SECTION "EatScreenVars", WRAM0  
+wDebugEatVar::
+    db ; 64;(4 * 16) ; I think we want 16 of the 40 OAM slots to be reserved for the player

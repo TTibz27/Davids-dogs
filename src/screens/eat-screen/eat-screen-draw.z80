@@ -1,0 +1,106 @@
+INCLUDE "hardware.inc"
+INCLUDE "src/labels/wram.z80"
+
+SECTION "EatScreenDraw", ROM0
+drawHotdogSprites::
+     ; blank sprite oam buffers
+     ld b, $00;
+     ld hl, plate_dog_sprite_buffer;
+     ld de, plate_dog_sprite_buffer_end - plate_dog_sprite_buffer;
+     call memfill;
+    ; jp .drawRightDog
+
+.drawleftDog
+     ld hl, plate_dog_sprite_buffer  
+     ld bc, left_table_dog
+     ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
+     call memcpy
+
+.drawRightDog  
+     ld hl, plate_dog_sprite_buffer  + 12 
+     ld bc, right_table_dog
+     ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
+     call memcpy
+
+
+.copySpriteOAMBuffer
+    ;Debug to load the static test oam sprites
+    ; ld hl, plate_dog_sprite_buffer  ; This is the OAM Mirror address, it should probably exist in hardware defines
+    ; ld bc, test_oam_sprite
+    ; ld de, test_oam_sprite_end - test_oam_sprite
+    ; call memcpy
+   
+    ld hl, wOAMBufferStart
+    ld bc, plate_dog_sprite_buffer
+    ld de, plate_dog_sprite_buffer_end - plate_dog_sprite_buffer
+    call memcpy
+    ret 
+
+
+
+
+    ; 10 OBJECTS GIVEN TO THE TIMER, GREAT MINERS OF AND CRAFTSMAN OF THE HOTDOG HALL
+    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
+    ; db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
+    ; db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags 
+
+    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
+    ; db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
+    ; db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags 
+
+
+    ;12 OBJECTS GIVEN TO THE HOTDOGS, THE WISEST AND FAIREST OF ALL BEINGS
+left_table_dog:
+    db $84, $24, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $84, $2c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $84, $34, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+
+right_table_dog:
+    db $84, $74, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $84, $7c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+    ;left hand dog 
+    ; db $84, $24, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $2c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $34, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; ;right hand dog 
+    ; db $84, $74, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $7c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+
+    ;8 OBJECTS GIVEN TO THE HANDS WHO ABOVE ALL ELSE DESIRE POWER
+    ;left hand
+    ; db $84, $74, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $7c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+    
+    ;right hand
+    ; db $84, $74, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $7c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+    
+
+    ; we've got 6 objects left on the idle screen at this point.
+    ;2 for the eyes?
+    ;1 for mouth?
+
+
+
+
+
+
+
+SECTION "EatScreenDrawVars", WRAM0    
+plate_dog_sprite_buffer::
+    ds 24;(4 * 16) ; I think we want 16 of the 40 OAM slots to be reserved for the player
+plate_dog_sprite_buffer_end::

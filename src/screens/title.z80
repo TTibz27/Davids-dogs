@@ -1,0 +1,100 @@
+INCLUDE "hardware.inc"
+INCLUDE "src/labels/hram.z80"
+INCLUDE "src/labels/vector_labels.z80"
+INCLUDE "src/labels/states.z80"
+SECTION "TitleScreenLogic", ROM0
+
+INIT_TITLE::
+
+call initWaitVBlank
+    xor a ; ld a, 0 ; We only need to reset a value with bit 7 reset, but 0 does the job
+    ld [rLCDC], a ; disables LCD display
+
+.copyTiles
+    ld de, EndTitleBgTiles - TitleBgTiles ; size of tiles
+    ld bc, TitleBgTiles
+    ld hl, $9000 ; vram
+    
+    call memcpy; 
+
+.copyTileMap ; 
+    ld hl, $9800 ; move to top left of tile map
+    ld b, $14 ;; width of screen in hex
+    ld c, $12 ; height of screen in hex
+    ld de, TitleBgMap
+    call smallTileMapCopy
+
+
+    ; register a is still zero
+    ; initialize flags to zero
+    ld [hVBlankWaitFlag], a
+
+    ; Set BG scroll to 0 ,0 
+    ld [rSCX], a
+    ld [rSCY], a
+    ;set test variables
+    ld [hTestMain],a
+    ld [hTestWait],a
+    ld [hTestVar],a
+    ; set system state to 0 (title screen) as well
+    ld [hSystemState],a 
+
+
+
+    ; Init BG pallete
+    ld a, %11100100
+    ld [rBGP], a
+
+    ; Set Sprite pallete
+    ld a, %11100100
+    ld [rOBP0],a
+
+       ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
+    ;TODO ---- TEMP DISABLE SPRITES
+    ;ld a, %10000111
+    ld a, %10000001
+    ld [rLCDC], a
+
+
+    ; lets try to copy sprite OAM to ram
+    ld hl, $C000
+    ld bc, OamMirror
+    ld de, OamMirrorEnd - OamMirror
+    call memcpy
+
+    ;;
+    ret
+
+;----------------------- END INIT SEQUENCE ------------------------------------------
+
+;-----------------Start Game loop-----------------------
+TITLE_LOOP::
+        ;; DEBUG FOR MUSIC START
+    xor a
+    ld b, a
+
+    ld a, [hJoypadHeld]
+    bit 6, a
+    call nz, testSound
+
+    ; ld a, [hJoypadHeld]
+    ; bit 7, a
+    
+    ; call nz, INIT_MUSIC
+
+
+    ld a, [hTestVar]
+    inc a
+    ld [hTestVar],a
+
+    ld a,[hJoypadPressed]
+    ;Start Button
+    bit 3, a
+    call nz, INIT_EAT_SCREEN
+    
+
+    jp EndMainGameLoop
+;---------------End Game loop --------------------------
+
+
+;------------State Transition Functions ---------------
