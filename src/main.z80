@@ -34,10 +34,14 @@ INCBIN "gfx/title.map.bin"
 EndTitleBgMap::
 
 ;; ----------------Sprite GFX --------------------------
+TimerSprites::
+INCBIN "gfx/ticker-clock-sprites.bin"
+EndTimerSprites::
 
-    TimerSprites::
-    incbin "gfx/ticker-clock.bin"
-    EndTimerSprites::
+HotdogSprites::
+INCBIN "gfx/hotdogs.bin"
+EndHotdogSprites::
+    
 
 
 ;-----------------------------------------------------------------------------
@@ -109,6 +113,8 @@ MainGameLoop::
     ld a, [hSystemState]
     cp SYSSTATE_TITLE
     jp z, TITLE_LOOP
+    cp SYSSTATE_EATING_SCREEN
+    jp z, EAT_SCREEN_LOOP
 
 
 
