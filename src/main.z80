@@ -18,11 +18,11 @@ EntryPoint: ;
 ;; -------------- Background GFX ----------------------
 section "BinGfx", ROM0 
 BgTiles::
-INCBIN "gfx/daves-dogs.bin"
+INCBIN "gfx/daves-dogs-2.bin"
 EndBgTiles::
 
 BgTileMap::
-INCBIN "gfx/daves-dogs.map.bin"
+INCBIN "gfx/daves-dogs-2.map.bin"
 EndBgTileMap::
 
 TitleBgTiles::
@@ -33,15 +33,14 @@ TitleBgMap::
 INCBIN "gfx/title.map.bin"
 EndTitleBgMap::
 
-;; ----------------Sprite GFX --------------------------
-TimerSprites::
-INCBIN "gfx/ticker-clock-sprites.bin"
-EndTimerSprites::
+SpashScreenTiles::
+INCBIN "gfx/splashscreen.bin"
+EndSplashScreenTiles::
 
-HotdogSprites::
-INCBIN "gfx/hotdogs.bin"
-EndHotdogSprites::
-    
+SpashScreenMap::
+INCBIN "gfx/title.map.bin"
+EndSplashScreenMap::
+
 
 
 ;-----------------------------------------------------------------------------
@@ -62,9 +61,12 @@ Start:
     call memfill;
 
     ; I am going to do the same near c100 for debug purposes for music playback
+    ;; update I am doing all of WRAM, lol, lmao
     ; ld b, $00;
-    ld hl, $C100;
-    ld de, $01FF;
+    ;ld hl, $C0A0;
+    ;ld de, $01FF;
+    ld hl, $C000;
+    ld de, $1FFF;
     call memfill;
 
 
@@ -98,9 +100,9 @@ Start:
 MainGameLoop::
 
     ;; this just writes to make sure we are still running
-    ldh a, [hTestMain]
-    inc a
-    ld [hTestMain],a
+    ; ldh a, [hTestMain]
+    ; inc a
+    ; ld [hTestMain],a
     
     ;; No traditional player input in this game! commenting out for now, easier to redo if I can see how I did it before
     ; will delete 

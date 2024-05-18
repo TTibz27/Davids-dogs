@@ -199,7 +199,7 @@ MUSIC_FRAME_STEP::
 
 
 
-SECTION "SoundVariables", wram0[$C100]
+SECTION "SoundVariables", wram0[$C0A0]
 music_enabled_bool:: ;C0100
     db
 music_wait_timer:: ;C101

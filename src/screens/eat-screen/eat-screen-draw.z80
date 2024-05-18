@@ -1,14 +1,52 @@
 INCLUDE "hardware.inc"
 INCLUDE "src/labels/wram.z80"
+include "src/screens/eat-screen/anim-enum.z80"
 
 SECTION "EatScreenDraw", ROM0
-drawHotdogSprites::
-     ; blank sprite oam buffers
+drawMain::
+    ld hl, wOAMBufferStart
+    ld b, h ;; load buffer address into bc, bc should always have the next available OAM location after calls
+    ld c, l
+    .checkExistingAnimations
+    ld a , [wPlayerActions]
+    cp a, 0
+    call nz, DrawAnimations
+    call drawHotdogSprites
+
+ret
+
+drawHotdogSprites:: ; assume buffer address is in BC
+    push bc
+
+    ;TODO - instead of blanking all of the OAM every single frame, it would proably be better to flag when this needs updated, check if flag exists, then run this
+    ;TODO - that could be improved on by flagging specific objects that need updated or whatever. but like, I am pressed for time so whatever.
+    ; (also to hide sprites you can set their y values out of bounds instead of blanking the whole object, that would probably be better than blanking everything.)
+    
+    ; blank sprite oam buffers  
      ld b, $00;
      ld hl, plate_dog_sprite_buffer;
-     ld de, plate_dog_sprite_buffer_end - plate_dog_sprite_buffer;
+     ld de, hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
      call memfill;
+
     ; jp .drawRightDog
+
+  
+
+.checkRightDog
+    ld a, [eat_screen_idle_draw_flags]
+    bit 0, a
+    jp z, .checkLeftDog
+
+.drawRightDog  
+    ld hl, plate_dog_sprite_buffer  + 12 
+    ld bc, right_table_dog
+    ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
+    call memcpy
+
+.checkLeftDog
+    ld a, [eat_screen_idle_draw_flags]
+    bit 1, a
+    jp z ,.copySpriteOAMBufferDogs
 
 .drawleftDog
      ld hl, plate_dog_sprite_buffer  
@@ -16,48 +54,61 @@ drawHotdogSprites::
      ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
      call memcpy
 
-.drawRightDog  
-     ld hl, plate_dog_sprite_buffer  + 12 
-     ld bc, right_table_dog
-     ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
-     call memcpy
-
-
-.copySpriteOAMBuffer
+.copySpriteOAMBufferDogs
     ;Debug to load the static test oam sprites
     ; ld hl, plate_dog_sprite_buffer  ; This is the OAM Mirror address, it should probably exist in hardware defines
     ; ld bc, test_oam_sprite
     ; ld de, test_oam_sprite_end - test_oam_sprite
     ; call memcpy
    
-    ld hl, wOAMBufferStart
+    pop bc
+    ld h, b
+    ld l, c
     ld bc, plate_dog_sprite_buffer
     ld de, plate_dog_sprite_buffer_end - plate_dog_sprite_buffer
-    call memcpy
+    call memcpy_keepaddr;; this keeps the final address in bc
     ret 
 
 
+DrawAnimations::
+    push bc
+    ; A still contains animation number, so we should just keep using it because why not.
+
+    ld hl, debug 
+    ld bc, debug_label
+    ld de, 14
+    call memcpy
+    ;; this is effectively a big switcgh
+    ; cp a, EATANIM_LEFT_REACH
+    ; jr z, .drawLeftReach
+
+    ; jr .copySpriteOAMBufferAnims ;; default case
+
+
+
+.drawLeftReach
+    ld hl, hand_anim_sprite_buffer  
+    ld bc, left_hand_grabbing_dog
+    ld de, 44 ;; 44bytes = 11 obj 
+    call memcpy
+jr .copySpriteOAMBufferAnims
+
+.copySpriteOAMBufferAnims
+    pop bc
+    ld h, b
+    ld l, c
+    ld bc, hand_anim_sprite_buffer
+    ld de, hand_anim_sprite_buffer_end - hand_anim_sprite_buffer
+    call memcpy_keepaddr ;; load buffer address back into bc
+
+    ret
+
+ ; it would probably be good to dynamically account for the tile number based on when it is loaded into RAM if possible
+ ; right now we are hardcoding tile numbers straight from the debugger so whatever I guess.
 
 
     ; 10 OBJECTS GIVEN TO THE TIMER, GREAT MINERS OF AND CRAFTSMAN OF THE HOTDOG HALL
-    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
-    ; db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
-    ; db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags 
-
-    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
-    ; db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $38, $38, $03, $00  ;y- loc, x - loc, tile #,  flags ,    
-    ; db $40, $30, $04, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $38, $30, $02, $00  ;y- loc, x - loc, tile #,  flags 
-
-
-    ;12 OBJECTS GIVEN TO THE HOTDOGS, THE WISEST AND FAIREST OF ALL BEINGS
+    ;12 OBJECTS GIVEN TO THE HOTDOGS, THE WISEST AND FAIREST OF ALL BEINGS 
 left_table_dog:
     db $84, $24, $06, $00  ;y- loc, x - loc, tile #,  flags ,
     db $84, $2c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
@@ -76,31 +127,48 @@ right_table_dog:
     ; db $84, $7c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
     ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
 
-    ;8 OBJECTS GIVEN TO THE HANDS WHO ABOVE ALL ELSE DESIRE POWER
-    ;left hand
-    ; db $84, $74, $06, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $7c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+    ;11 OBJECTS GIVEN TO THE HANDS, WHO ABOVE ALL ELSE DESIRE POWER
+left_hand_grabbing_dog:
+    db $68, $3A, $0E, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),
+    db $68, $42, $0F, %00010000   ;y- loc, x - loc, tile #,  flags ,
     
-    ;right hand
-    ; db $84, $74, $06, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $7c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $70, $32, $10, %00010000  ;y- loc, x - loc, tile #,  flags ,
+    db $70, $3A, $11, %00010000  ;y- loc, x - loc, tile #,  flags ,
+    db $70, $42, $12, %00010000   ;y- loc, x - loc, tile #,  flags , 
+
+    db $78, $2A, $13, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $78, $32, $14, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $78, $3A, $15, %00010000   ;y- loc, x - loc, tile #,  flags ,
+
+    db $80, $2A, $16, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $80, $32, $17, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $80, $3A, $18, %00010000   ;y- loc, x - loc, tile #,  flags ,
+
     
 
-    ; we've got 6 objects left on the idle screen at this point.
+    ; we've got 3 objects left on the idle screen at this point.
     ;2 for the eyes?
     ;1 for mouth?
 
+debug_label:
+    db "BIG LIGMA       "
 
 
 
+SECTION "EatScreenDrawVars", wramx 
+debug:
+    ds 14;
+eat_screen_idle_draw_flags::
+    db
+;  --------------------FLAGS --------------------------------    
+;       ???             | draw left dog | draw right dog
+;-------------------------------------------------------------
+; bits    7-2           |       1       |      0
 
-
-
-SECTION "EatScreenDrawVars", WRAM0    
 plate_dog_sprite_buffer::
-    ds 24;(4 * 16) ; I think we want 16 of the 40 OAM slots to be reserved for the player
+    ds 24;(4 * 6) , uses 6 objects,
 plate_dog_sprite_buffer_end::
+
+hand_anim_sprite_buffer::
+    ds 44 ;(4 * 11) 8 objects
+hand_anim_sprite_buffer_end::

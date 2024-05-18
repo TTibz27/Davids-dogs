@@ -2,6 +2,7 @@ INCLUDE "hardware.inc"
 INCLUDE "src/labels/hram.z80"
 INCLUDE "src/labels/vector_labels.z80"
 INCLUDE "src/labels/states.z80"
+include "src/screens/eat-screen/anim-enum.z80"
 
 SECTION "EatScreenLogic", ROM0
 
@@ -52,26 +53,35 @@ INIT_EAT_SCREEN::
     ld de, EndHotdogSprites - HotdogSprites
     call memcpy
 
+    ld bc, HandsReachingSprites
+    ld de, EndHandsReachingSprites - HandsReachingSprites
+    call memcpy
 
-    ; ld hl, $8000  ; dest address in vram
-    ; ld bc, HockeyGuyIdleSprite
-    ; ld de, EndHockeyGuyIdleSprite - HockeyGuyIdleSprite
-    ; call memcpy
-    
-    
-    
+
+    ld a, %11111111
+    ld [eat_screen_idle_draw_flags], a
+    ld [wPlateHotDogState],a
+
+    xor a
+    ld [wActionAnimationTimer],a
+    ld [wLeftDogRespawnTimer],a
+    ld [wRightDogRespawnTimer],a
+    ld [wPlayerActions], a
+
+
     ;.initPlayer
      ;//   call initPlayerObject
     
+;----------------------- Screen Reinitialization  ---------------------------
     .initScreen
         ; Init BG pallete
         ld a, %11100100
         ld [rBGP], a
     
         ; Set Sprite pallete
-        ld a, %11100100
+        ld a, %11100100 ; black, dark grey, light, transparent
         ld [rOBP0],a
-        ld a, %11010010
+        ld a, %11010010 ; black, light grey, white, transparent
         ld [rOBP1],a
     
            ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
@@ -106,17 +116,186 @@ EAT_SCREEN_LOOP::
     ld a, [hl]
     inc a
     ld [hl], a
+    
+    ;check inputs, jump this section if actionanim timer is not zero
+    ld a, [wActionAnimationTimer]
+    cp a, 0
+    call z,  .check_dog_inputs ; check inputs 
 
-    call drawHotdogSprites
+   
+; Decrement all active timers
 
+.dec_active_anim_timer
+    ld a , [wActionAnimationTimer]
+    cp a, 0
+    jp z, .dec_left_dog_respawn_timer
+    dec a
+    ld [wActionAnimationTimer],a
+    jr .end_timers ;; skip other timers if we are holding in an animation / player action
 
+.dec_left_dog_respawn_timer
+  ;  xor a
+   ; ld [wPlayerActions], a  ;; blank player anims if anim timer is zero
+
+    ld a , [wLeftDogRespawnTimer]
+    cp a, 0
+    jp z, .dec_right_dog_respawn_timer
+    dec a
+    ld [wLeftDogRespawnTimer],a
+    ld b,a
+.dec_right_dog_respawn_timer
+    ld a , [wRightDogRespawnTimer]
+    cp a, 0
+    jp z, .end_timers
+    dec a
+    ld [wRightDogRespawnTimer],a
+    ld c,a
+.end_timers
+
+;respawn hotdogs
+.respawn_missing_dogs
+    ld a, [wPlateHotDogState]
+    ld b, a
+    ld a, [wLeftDogRespawnTimer]
+    cp a, 0
+    jp nz, .resp_right
+    bit 1, b ;; if timer is zero, and the dog state is zero
+    jp nz, .resp_right
+    set 1, b ; this bit is now appropriate
+.resp_right
+    ld a, [wRightDogRespawnTimer]
+    cp a, 0
+    jp nz, .set_eat_screen_draw_flags
+    bit 0, b
+    jr nz, .set_eat_screen_draw_flags
+    set 0, b
+.set_eat_screen_draw_flags ; B contains the updated hot dog state
+ld a,b
+ld [eat_screen_idle_draw_flags], a
+; ----------------------DRAW SECTION ------------------------
+.handleDraw
+    call drawMain
+.end_eat_main_loop
 jp EndMainGameLoop
 ;------------------------------------END GAMEPLAY LOOP---------------------------------------------
+
+
+
+;-----------------   Input handlers    -----------
+.check_dog_inputs
+    ;LEFT
+.left_check
+    ldh a, [hJoypadPressed]
+    bit 5, a
+    jr z, .right_check
+    ; ---- button pressed ---
+    ld a, 30
+    ld [wActionAnimationTimer], a
+    ld a, 60
+    ld [wLeftDogRespawnTimer], a
+    ld a, [wPlateHotDogState]
+    res 1, a
+    ld [wPlateHotDogState],a
+
+    ld a, EATANIM_LEFT_REACH
+    ld [wPlayerActions], a
+
+    jr .inputCheckEnd
+;   END 
+
+;RIGHT
+.right_check
+    ldh a, [hJoypadPressed]
+    bit 4, a
+    jp z, .inputCheckEnd
+    
+    ld a, 30
+    ld [wActionAnimationTimer], a
+    ld a, 60
+    ld [wRightDogRespawnTimer], a
+    ld a, [wPlateHotDogState]
+    res 0, a
+    ld [wPlateHotDogState],a
+
+    ld a, EATANIM_RIGHT_REACH
+    ld [wPlayerActions], a
+    jr .inputCheckEnd
+    ;call nz, moveSpriteRight
+
+
+.inputCheckEnd
+ret
+
 
 BlankTile::
     DS 16, $00
 
 
-SECTION "EatScreenVars", WRAM0  
-wDebugEatVar::
-    db ; 64;(4 * 16) ; I think we want 16 of the 40 OAM slots to be reserved for the player
+SECTION "EatScreenVars", wramx  
+wPlateHotDogState:
+    db ; 
+    ;  --------------------FLAGS --------------------------------    
+    ;       ???             |  left dog shown|  right dog shown
+    ;-------------------------------------------------------------
+    ; bits    7-2           |       1       |      0
+
+
+wPlayerActions::
+    db ; use as INT / enum
+    ; 0 - none
+    ; 1 - left arm reach
+    ; 2 = right arm reach
+    
+
+
+wActionAnimationTimer::
+    db
+wLeftDogRespawnTimer::
+    db
+wRightDogRespawnTimer::
+    db
+
+
+section "EatScreenSpriteData", rom0
+
+;; ----------------Sprite GFX --------------------------
+TimerSprites::
+    INCBIN "gfx/ticker-clock-sprites.bin"
+    EndTimerSprites::
+    
+    HotdogSprites::
+    INCBIN "gfx/hotdogs.bin"
+    EndHotdogSprites::
+    
+    HandsIdleSprites::
+    INCBIN "gfx/hands.bin"
+    EndHandsIdleSprites::
+    
+    HandsReachingSprites::
+    INCBIN "gfx/hand-reaching.bin"
+    EndHandsReachingSprites::
+
+; -------- PLATE NOTES    ---------
+ ; We can use a different variable to hide the hot dogs on a specific side every 4 seconds or whatever.
+ ; wPlateHotdogState represents if it is currently on spawn cooldown.
+ ; to add a timer to periodically hide we can add another variable and 'bitwise and' them. 
+ ;or the dog can be removed programatically as long as the respawn timer is set, since if the respawn timer the existing state will not be respected
+
+
+
+;  These little functions might be useful later if we want to hide / show the dogs to make it more difficult
+; .add_both_dogs_to_state
+;     ld a, %00000011
+;     ld [wPlateHotDogState], a
+;     ld [eat_screen_idle_draw_flags], a
+;     jr .handleDraw
+   
+; .flip_hotdog_state
+;     ld a, [wPlateHotDogState]
+;     cpl ; complement A register, same as   ;xor a, $ff with like one less cycle
+;         ;; this might need to be changed later, in order to filter out only the last 2 bits. 
+;         ;for now since neither field is using any other bits and they match, who cares.
+;     ld [wPlateHotDogState], a
+;     ld [eat_screen_idle_draw_flags], a
+;     xor a
+;     ld [hl],a ; reset timer

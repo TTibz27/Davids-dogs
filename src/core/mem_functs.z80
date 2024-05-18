@@ -24,6 +24,32 @@ memcpy::
     jr nz, .memcpy_loop
     ret
 
+
+  memcpy_keepaddr::
+  ; DE = block size
+  ; BC = source address
+  ; HL = destination address
+  ; dec DE
+
+.memcpy2_loop:
+  ld A, [BC]
+  ld [HL], A
+  inc BC
+  inc HL
+  dec DE
+
+.memcpy2_check_limit:
+  ld A, E
+  cp $00
+  jr nz, .memcpy2_loop     
+  ld A, D
+  cp $00
+  jr nz, .memcpy2_loop
+  ld b, h
+  ld c, l
+  ret
+
+
 memfill:: ;; this will fill a  block of memory with the same bytes repeating
     ;  B = value to fill
     ; DE = Block size
