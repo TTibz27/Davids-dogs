@@ -4,13 +4,21 @@ include "src/screens/eat-screen/anim-enum.z80"
 
 SECTION "EatScreenDraw", ROM0
 drawMain::
+
+    ;BLANK OAM BUFFER
+    ld b, $00;
+    ld hl, plate_dog_sprite_buffer;
+    ld de, 68;  68 is debug:  hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
+    call memfill;
+    ;TODO - instead of blanking all of the OAM every single frame, it would proably be better to flag when this needs updated, check if flag exists, then run this
+    ;TODO - that could be improved on by flagging specific objects that need updated or whatever. but like, I am pressed for time so whatever.
+    ;(also to hide sprites you can set their y values out of bounds instead of blanking the whole object, that would probably be better than blanking everything.)
+
     ld hl, wOAMBufferStart
     ld b, h ;; load buffer address into bc, bc should always have the next available OAM location after calls
     ld c, l
-    .checkExistingAnimations
-    ld a , [wPlayerActions]
-    cp a, 0
-    call nz, DrawAnimations
+   
+    call DrawAnimations
     call drawHotdogSprites
 
 ret
@@ -18,22 +26,9 @@ ret
 drawHotdogSprites:: ; assume buffer address is in BC
     push bc
 
-    ;TODO - instead of blanking all of the OAM every single frame, it would proably be better to flag when this needs updated, check if flag exists, then run this
-    ;TODO - that could be improved on by flagging specific objects that need updated or whatever. but like, I am pressed for time so whatever.
-    ; (also to hide sprites you can set their y values out of bounds instead of blanking the whole object, that would probably be better than blanking everything.)
-    
-    ; blank sprite oam buffers  
-     ld b, $00;
-     ld hl, plate_dog_sprite_buffer;
-     ld de, hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
-     call memfill;
-
-    ; jp .drawRightDog
-
-  
 
 .checkRightDog
-    ld a, [eat_screen_idle_draw_flags]
+    ld a, [wHotDogState]
     bit 0, a
     jp z, .checkLeftDog
 
@@ -44,7 +39,7 @@ drawHotdogSprites:: ; assume buffer address is in BC
     call memcpy
 
 .checkLeftDog
-    ld a, [eat_screen_idle_draw_flags]
+    ld a, [wHotDogState]
     bit 1, a
     jp z ,.copySpriteOAMBufferDogs
 
@@ -72,17 +67,25 @@ drawHotdogSprites:: ; assume buffer address is in BC
 
 DrawAnimations::
     push bc
-    ; A still contains animation number, so we should just keep using it because why not.
-
+    ;Writing text to help view stuff in ram
     ld hl, debug 
     ld bc, debug_label
     ld de, 14
     call memcpy
-    ;; this is effectively a big switcgh
-    ; cp a, EATANIM_LEFT_REACH
-    ; jr z, .drawLeftReach
+    ;; this is effectively a big switch
+    ld a, [wPlayerActions]
+    cp a, EATANIM_LEFT_REACH
+    jr z, .drawLeftReach
+    cp a, EATANIM_RIGHT_REACH
+    jr z, .drawRightReach
+    cp a, EATANIM_HOLD_LEFT
+    jr z, .drawLeftHold
+    cp a, EATANIM_HOLD_RIGHT
+    jr z, .drawRightHold
+    cp a, EATANIM_HOLD_BOTH
+    jr z, .drawBothHold 
 
-    ; jr .copySpriteOAMBufferAnims ;; default case
+    jr .copySpriteOAMBufferAnims ;; default case
 
 
 
@@ -92,6 +95,32 @@ DrawAnimations::
     ld de, 44 ;; 44bytes = 11 obj 
     call memcpy
 jr .copySpriteOAMBufferAnims
+
+.drawRightReach
+    ld hl, hand_anim_sprite_buffer  
+    ld bc, right_hand_grabbing_dog
+    ld de, 44 ;; 44bytes = 11 obj 
+    call memcpy
+jr .copySpriteOAMBufferAnims
+
+
+.drawLeftHold
+    ld hl, hand_anim_sprite_buffer  
+    ld bc, left_hand_idle
+    ld de, 16;; 44bytes = 11 obj 
+    call memcpy
+    jr .copySpriteOAMBufferAnims
+.drawRightHold
+    ld hl, hand_anim_sprite_buffer  
+    ld bc, right_hand_idle
+    ld de, 16 ;; 44bytes = 11 obj 
+    call memcpy
+    jr .copySpriteOAMBufferAnims
+.drawBothHold
+    ld hl, hand_anim_sprite_buffer  
+    ld bc, left_hand_idle
+    ld de, 32;; 44bytes = 11 obj 
+    call memcpy
 
 .copySpriteOAMBufferAnims
     pop bc
@@ -144,6 +173,35 @@ left_hand_grabbing_dog:
     db $80, $32, $17, %00010000   ;y- loc, x - loc, tile #,  flags ,
     db $80, $3A, $18, %00010000   ;y- loc, x - loc, tile #,  flags ,
 
+    right_hand_grabbing_dog:
+    db $68, $66, $0F, %00110000  ;y- loc, x - loc, tile #,  flags (x-flip , alt pallette),
+    db $68, $6e, $0E, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    
+    db $70, $66, $12, %00110000  ;y- loc, x - loc, tile #,  flags ,
+    db $70, $6e, $11, %00110000  ;y- loc, x - loc, tile #,  flags ,
+    db $70, $76, $10, %00110000   ;y- loc, x - loc, tile #,  flags , 
+
+    db $78, $6e, $15, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    db $78, $76, $14, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    db $78, $7e, $13, %00110000   ;y- loc, x - loc, tile #,  flags ,
+
+    db $80, $6e, $18, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    db $80, $76, $17, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    db $80, $7e, $16, %00110000   ;y- loc, x - loc, tile #,  flags ,
+
+    left_hand_idle:
+    db $70, $38, $19, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $70, $40, $1a, %00010000  ;y- loc, x - loc, tile #,  flags ,
+    db $78, $38, $1b, %00010000  ;y- loc, x - loc, tile #,  flags ,
+    db $78, $40, $1c, %00010000   ;y- loc, x - loc, tile #,  flags , 
+
+    right_hand_idle:
+    db $70, $68, $19, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $70, $70, $1a, %00010000  ;y- loc, x - loc, tile #,  flags ,
+    db $78, $68, $1b, %00010000  ;y- loc, x - loc, tile #,  flags ,
+    db $78, $70, $1c, %00010000   ;y- loc, x - loc, tile #,  flags , 
+
+
     
 
     ; we've got 3 objects left on the idle screen at this point.
@@ -155,7 +213,8 @@ debug_label:
 
 
 
-SECTION "EatScreenDrawVars", wramx 
+
+SECTION "EatScreenDrawVars", wramx
 debug:
     ds 14;
 eat_screen_idle_draw_flags::
@@ -168,7 +227,6 @@ eat_screen_idle_draw_flags::
 plate_dog_sprite_buffer::
     ds 24;(4 * 6) , uses 6 objects,
 plate_dog_sprite_buffer_end::
-
 hand_anim_sprite_buffer::
     ds 44 ;(4 * 11) 8 objects
 hand_anim_sprite_buffer_end::
