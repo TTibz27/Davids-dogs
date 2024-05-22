@@ -8,7 +8,7 @@ drawMain::
     ;BLANK OAM BUFFER
     ld b, $00;
     ld hl, plate_dog_sprite_buffer;
-    ld de, 68;  68 is debug:  hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
+    ld de, hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; - ;68;  68 is debug:  hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
     call memfill;
     ;TODO - instead of blanking all of the OAM every single frame, it would proably be better to flag when this needs updated, check if flag exists, then run this
     ;TODO - that could be improved on by flagging specific objects that need updated or whatever. but like, I am pressed for time so whatever.
@@ -26,43 +26,131 @@ ret
 drawHotdogSprites:: ; assume buffer address is in BC
     push bc
 
+    .checkRightDog
+        ld a, [wHotDogState]
+        bit 0, a
+        jp z, .checkLeftDog
 
-.checkRightDog
+    .drawRightDog  
+        ld hl, plate_dog_sprite_buffer  + 12 
+        ld bc, right_table_dog
+        ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
+        call memcpy
+
+    .checkLeftDog
+        ld a, [wHotDogState]
+        bit 1, a
+        jp z , .checkLeftHoldDog
+
+    .drawleftDog
+        ld hl, plate_dog_sprite_buffer  
+        ld bc, left_table_dog
+        ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
+        call memcpy
+
+    .checkLeftHoldDog
+        ; skip the rest if we are reaching for a dog
+        ld a, [wPlayerActions]
+        cp a, EATANIM_LEFT_REACH
+        jp z, .endHotDogChecks
+        cp a, EATANIM_RIGHT_REACH
+        jp z, .endHotDogChecks
+        cp a, EATANIM_EAT_LEFT
+        jp z, .endHotDogChecks
+        cp a, EATANIM_EAT_RIGHT
+        jp z, .endHotDogChecks
+
+        ;else check if bit is set
+        ld a, [wHotDogState]
+        bit 3, a
+        jp z , .checkRightHoldDog
+
+    .drawLeftHoldDog
+        ;ranges: 255-200 200-150, 150-100, 100-50, 50-0
+        ld a, [wLeftDogHealth]
+        cp a, 51
+        jr c, .leftholddog1   
+        cp a, 101
+        jr c, .leftholddog2   
+        cp a, 151
+        jr c, .leftholddog3
+        cp a, 201
+        jr c, .leftholddog4
+        jr .leftholddog5
+
+    .leftholddog1
+        ld bc, left_hand_dog_1
+        jr .leftHoldDogWriteToBuffer
+    .leftholddog2
+        ld bc, left_hand_dog_2
+        jr .leftHoldDogWriteToBuffer
+    .leftholddog3
+        ld bc, left_hand_dog_3
+        jr .leftHoldDogWriteToBuffer
+    .leftholddog4
+        ld bc, left_hand_dog_4
+        jr .leftHoldDogWriteToBuffer
+    .leftholddog5
+        ld bc, left_hand_dog_5
+        jr .leftHoldDogWriteToBuffer
+    .leftHoldDogWriteToBuffer
+        ld hl, plate_dog_sprite_buffer + 24 
+        ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
+        call memcpy
+
+
+    .checkRightHoldDog
     ld a, [wHotDogState]
-    bit 0, a
-    jp z, .checkLeftDog
+    bit 2, a
+    jp z , .endHotDogChecks
+    .drawRightHoldDog
+       ;ranges: 255-200 200-150, 150-100, 100-50, 50-0
+       ld a, [wRightDogHealth]
+       cp a, 51
+       jr c, .rightholddog1   
+       cp a, 101
+       jr c, .rightholddog2   
+       cp a, 151
+       jr c, .rightholddog3
+       cp a, 201
+       jr c, .rightholddog4
+       jr .rightholddog5
 
-.drawRightDog  
-    ld hl, plate_dog_sprite_buffer  + 12 
-    ld bc, right_table_dog
-    ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
-    call memcpy
+   .rightholddog1
+       ld bc, right_hand_dog_1
+       jr .rightHoldDogWriteToBuffer
+   .rightholddog2
+       ld bc, right_hand_dog_2
+       jr .rightHoldDogWriteToBuffer
+   .rightholddog3
+       ld bc, right_hand_dog_3
+       jr .rightHoldDogWriteToBuffer
+   .rightholddog4
+       ld bc, right_hand_dog_4
+       jr .rightHoldDogWriteToBuffer
+   .rightholddog5
+       ld bc, right_hand_dog_5
+       jr .rightHoldDogWriteToBuffer
+   .rightHoldDogWriteToBuffer
+       ld hl, plate_dog_sprite_buffer + 36 
+       ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
+       call memcpy
 
-.checkLeftDog
-    ld a, [wHotDogState]
-    bit 1, a
-    jp z ,.copySpriteOAMBufferDogs
-
-.drawleftDog
-     ld hl, plate_dog_sprite_buffer  
-     ld bc, left_table_dog
-     ld de, 12 ;; 12 bytes = 3 obj = 1 hotdog
-     call memcpy
-
-.copySpriteOAMBufferDogs
-    ;Debug to load the static test oam sprites
-    ; ld hl, plate_dog_sprite_buffer  ; This is the OAM Mirror address, it should probably exist in hardware defines
-    ; ld bc, test_oam_sprite
-    ; ld de, test_oam_sprite_end - test_oam_sprite
-    ; call memcpy
-   
-    pop bc
-    ld h, b
-    ld l, c
-    ld bc, plate_dog_sprite_buffer
-    ld de, plate_dog_sprite_buffer_end - plate_dog_sprite_buffer
-    call memcpy_keepaddr;; this keeps the final address in bc
-    ret 
+    .endHotDogChecks
+    .copySpriteOAMBufferDogs
+        ;Debug to load the static test oam sprites
+        ; ld hl, plate_dog_sprite_buffer  ; This is the OAM Mirror address, it should probably exist in hardware defines
+        ; ld bc, test_oam_sprite
+        ; ld de, test_oam_sprite_end - test_oam_sprite
+        ; call memcpy
+    
+        pop bc
+        ld h, b
+        ld l, c
+        ld bc, plate_dog_sprite_buffer
+        ld de, plate_dog_sprite_buffer_end - plate_dog_sprite_buffer
+        call memcpy_keepaddr;; this keeps the final address in bc
+ret 
 
 
 DrawAnimations::
@@ -84,60 +172,75 @@ DrawAnimations::
     jr z, .drawRightHold
     cp a, EATANIM_HOLD_BOTH
     jr z, .drawBothHold 
+    cp a, EATANIM_EAT_LEFT
+    jr z, .drawBiteLeft
+    cp a, EATANIM_EAT_RIGHT
+    jr z, .drawBiteRight
 
     jr .copySpriteOAMBufferAnims ;; default case
 
 
 
-.drawLeftReach
-    ld hl, hand_anim_sprite_buffer  
-    ld bc, left_hand_grabbing_dog
-    ld de, 44 ;; 44bytes = 11 obj 
-    call memcpy
-jr .copySpriteOAMBufferAnims
-
-.drawRightReach
-    ld hl, hand_anim_sprite_buffer  
-    ld bc, right_hand_grabbing_dog
-    ld de, 44 ;; 44bytes = 11 obj 
-    call memcpy
-jr .copySpriteOAMBufferAnims
-
-
-.drawLeftHold
-    ld hl, hand_anim_sprite_buffer  
-    ld bc, left_hand_idle
-    ld de, 16;; 44bytes = 11 obj 
-    call memcpy
+    .drawLeftReach
+        ld hl, hand_anim_sprite_buffer  
+        ld bc, left_hand_grabbing_dog
+        ld de, 44 ;; 44bytes = 11 obj 
+        call memcpy
     jr .copySpriteOAMBufferAnims
-.drawRightHold
-    ld hl, hand_anim_sprite_buffer  
-    ld bc, right_hand_idle
-    ld de, 16 ;; 44bytes = 11 obj 
-    call memcpy
+
+    .drawRightReach
+        ld hl, hand_anim_sprite_buffer  
+        ld bc, right_hand_grabbing_dog
+        ld de, 44 ;; 44bytes = 11 obj 
+        call memcpy
     jr .copySpriteOAMBufferAnims
-.drawBothHold
-    ld hl, hand_anim_sprite_buffer  
-    ld bc, left_hand_idle
-    ld de, 32;; 44bytes = 11 obj 
-    call memcpy
 
-.copySpriteOAMBufferAnims
-    pop bc
-    ld h, b
-    ld l, c
-    ld bc, hand_anim_sprite_buffer
-    ld de, hand_anim_sprite_buffer_end - hand_anim_sprite_buffer
-    call memcpy_keepaddr ;; load buffer address back into bc
 
-    ret
+    .drawLeftHold
+        ld hl, hand_anim_sprite_buffer  
+        ld bc, left_hand_idle
+        ld de, 16;; 44bytes = 11 obj 
+        call memcpy
+        jr .copySpriteOAMBufferAnims
+    .drawRightHold
+        ld hl, hand_anim_sprite_buffer  
+        ld bc, right_hand_idle
+        ld de, 16 ;; 44bytes = 11 obj 
+        call memcpy
+        jr .copySpriteOAMBufferAnims
+    .drawBothHold
+        ld hl, hand_anim_sprite_buffer  
+        ld bc, left_hand_idle
+        ld de, 32;; 44bytes = 11 obj 
+        call memcpy
+        jr .copySpriteOAMBufferAnims
+    .drawBiteLeft
+        ld hl, hand_anim_sprite_buffer  
+        ld bc, left_hand_biting_dog
+        ld de, 44 ;; 44bytes = 11 obj 
+        call memcpy
+        jr .copySpriteOAMBufferAnims
+    .drawBiteRight
+        ld hl, hand_anim_sprite_buffer  
+        ld bc, right_hand_biting_dog
+        ld de, 44 ;; 44bytes = 11 obj 
+        call memcpy
+        jr .copySpriteOAMBufferAnims
+
+    .copySpriteOAMBufferAnims
+        pop bc
+        ld h, b
+        ld l, c
+        ld bc, hand_anim_sprite_buffer
+        ld de, hand_anim_sprite_buffer_end - hand_anim_sprite_buffer
+        call memcpy_keepaddr ;; load buffer address back into bc
+
+    ret ; --------------------------
+
 
  ; it would probably be good to dynamically account for the tile number based on when it is loaded into RAM if possible
  ; right now we are hardcoding tile numbers straight from the debugger so whatever I guess.
 
-
-    ; 10 OBJECTS GIVEN TO THE TIMER, GREAT MINERS OF AND CRAFTSMAN OF THE HOTDOG HALL
-    ;12 OBJECTS GIVEN TO THE HOTDOGS, THE WISEST AND FAIREST OF ALL BEINGS 
 left_table_dog:
     db $84, $24, $06, $00  ;y- loc, x - loc, tile #,  flags ,
     db $84, $2c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
@@ -147,16 +250,49 @@ right_table_dog:
     db $84, $74, $06, $00  ;y- loc, x - loc, tile #,  flags ,
     db $84, $7c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
     db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
-    ;left hand dog 
-    ; db $84, $24, $06, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $2c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $34, $08, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; ;right hand dog 
-    ; db $84, $74, $06, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $7c, $07, $00  ;y- loc, x - loc, tile #,  flags ,
-    ; db $84, $84, $08, $00  ;y- loc, x - loc, tile #,  flags ,
 
-    ;11 OBJECTS GIVEN TO THE HANDS, WHO ABOVE ALL ELSE DESIRE POWER
+left_hand_dog_5:
+    db $6B, $38, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $40, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $48, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+right_hand_dog_5:
+    db $6B, $60, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $68, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $70, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+left_hand_dog_4:
+    db $6B, $38, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $40, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $48, $09, $00  ;y- loc, x - loc, tile #,  flags ,
+right_hand_dog_4:
+    db $6B, $60, $09, %00100000  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $68, $07, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $70, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+left_hand_dog_3:
+    db $6B, $38, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $40, $0A, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $00, $00, $00, $00  ; blank
+right_hand_dog_3:
+    db $00, $00, $00, $00  ; blank
+    db $6B, $68, $0a, %00100000  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $70, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+left_hand_dog_2:
+    db $6B, $38, $06, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $40, $0b, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $00, $00, $00, $00  ; blank
+right_hand_dog_2:
+    db $00, $00, $00, $00  ; blank
+    db $6B, $68, $0b, %00100000  ;y- loc, x - loc, tile #,  flags ,
+    db $6B, $70, $08, $00  ;y- loc, x - loc, tile #,  flags ,
+left_hand_dog_1:
+    db $6B, $38, $0c, $00  ;y- loc, x - loc, tile #,  flags ,
+    db $00, $00, $00, $00  ; blank
+    db $00, $00, $00, $00  ; blank
+    
+right_hand_dog_1:
+    db $00, $00, $00, $00  ; blank
+    db $00, $00, $00, $00  ; blank
+    db $6B, $70, $0c, %00100000   ;y- loc, x - loc, tile #,  flags ,
+
 left_hand_grabbing_dog:
     db $68, $3A, $0E, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),
     db $68, $42, $0F, %00010000   ;y- loc, x - loc, tile #,  flags ,
@@ -173,7 +309,7 @@ left_hand_grabbing_dog:
     db $80, $32, $17, %00010000   ;y- loc, x - loc, tile #,  flags ,
     db $80, $3A, $18, %00010000   ;y- loc, x - loc, tile #,  flags ,
 
-    right_hand_grabbing_dog:
+right_hand_grabbing_dog:
     db $68, $66, $0F, %00110000  ;y- loc, x - loc, tile #,  flags (x-flip , alt pallette),
     db $68, $6e, $0E, %00110000   ;y- loc, x - loc, tile #,  flags ,
     
@@ -188,6 +324,42 @@ left_hand_grabbing_dog:
     db $80, $6e, $18, %00110000   ;y- loc, x - loc, tile #,  flags ,
     db $80, $76, $17, %00110000   ;y- loc, x - loc, tile #,  flags ,
     db $80, $7e, $16, %00110000   ;y- loc, x - loc, tile #,  flags ,
+
+
+left_hand_biting_dog:
+    db 88, 72, $18, %01110000   ;y- loc, x - loc, tile #,  flags ,
+    db 88, 80, $17, %01110000   ;y- loc, x - loc, tile #,  flags ,
+    db 88, 88, $16, %01110000   ;y- loc, x - loc, tile #,  flags ,
+
+    db 96, 72, $15, %01110000   ;y- loc, x - loc, tile #,  flags ,
+    db 96, 80, $14, %01110000   ;y- loc, x - loc, tile #,  flags ,
+    db 96, 88, $13, %01110000   ;y- loc, x - loc, tile #,  flags ,
+  
+    db 104, 64, $12, %01110000  ;y- loc, x - loc, tile #,  flags ,
+    db 104, 72, $11, %01110000  ;y- loc, x - loc, tile #,  flags ,
+    db 104, 80, $10, %01110000   ;y- loc, x - loc, tile #,  flags , 
+
+    db 112, 64, $0F, %01110000  ;y- loc, x - loc, tile #,  flags (alt pallette),
+    db 112, 72, $0E, %01110000   ;y- loc, x - loc, tile #,  flags ,
+
+right_hand_biting_dog:
+    db 88, 80, $16, %01010000   ;y- loc, x - loc, tile #,  flags ,
+    db 88, 88, $17, %01010000   ;y- loc, x - loc, tile #,  flags ,
+    db 88, 96, $18, %01010000   ;y- loc, x - loc, tile #,  flags ,
+
+    db 96, 80, $13, %01010000   ;y- loc, x - loc, tile #,  flags ,
+    db 96, 88, $14, %01010000   ;y- loc, x - loc, tile #,  flags ,
+    db 96, 96, $15, %01010000   ;y- loc, x - loc, tile #,  flags ,
+  
+    db 104, 88, $10, %01010000  ;y- loc, x - loc, tile #,  flags ,
+    db 104, 96, $11, %01010000  ;y- loc, x - loc, tile #,  flags ,
+    db 104, 104, $12, %01010000   ;y- loc, x - loc, tile #,  flags , 
+
+    db 112, 96, $0E, %01010000  ;y- loc, x - loc, tile #,  flags (alt pallette),
+    db 112, 104, $0F, %01010000   ;y- loc, x - loc, tile #,  flags ,
+
+
+
 
     left_hand_idle:
     db $70, $38, $19, %00010000   ;y- loc, x - loc, tile #,  flags ,
@@ -224,9 +396,16 @@ eat_screen_idle_draw_flags::
 ;-------------------------------------------------------------
 ; bits    7-2           |       1       |      0
 
-plate_dog_sprite_buffer::
-    ds 24;(4 * 6) , uses 6 objects,
+
+;10 OBJECTS GIVEN TO THE TIMER, GREAT MINERS OF AND CRAFTSMAN OF THE HOTDOG HALL
+;12 OBJECTS GIVEN TO THE GLIZZIES, THE WISEST AND FAIREST OF ALL BEINGS 
+;11 OBJECTS GIVEN TO THE HANDS, WHO ABOVE ALL ELSE DESIRE POWER
+timer_sprite_buffer:: 
+    ds 40;uses 10 objects max, at  11 seconds
+timer_sprite_buffer_end::
+plate_dog_sprite_buffer:: 
+    ds 48; uses 12 objects
 plate_dog_sprite_buffer_end::
 hand_anim_sprite_buffer::
-    ds 44 ;(4 * 11) 8 objects
+    ds 44 ; 11 objects
 hand_anim_sprite_buffer_end::
