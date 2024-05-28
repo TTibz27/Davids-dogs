@@ -1,0 +1,284 @@
+INCLUDE "hardware.inc"
+INCLUDE "src/labels/hram.z80"
+INCLUDE "src/labels/vector_labels.z80"
+INCLUDE "src/labels/states.z80"
+include "src/screens/eat-screen/eat-screen-consts.z80"
+
+SECTION "MainTimerLogic", ROM0
+
+INIT_MAIN_TIMER::
+; init values for vars
+ld a, 4
+ld[leap_frame_counter],a
+ld a,59
+ld[frame_counter],a
+ld a , CONST_TimerDurationSeconds
+ld [time_left_seconds], a
+ld a, 3
+ld [intro_countdown_time_seconds], a
+
+ret;
+
+tickMainTimer::
+ld a, [frame_counter]
+dec a
+ld [frame_counter],a
+ret nz 
+.frame_counter_is_zero
+    ld a, [time_left_seconds]
+    cp a, 0
+    jp z, .end_timer_tick
+    dec a
+    ld [time_left_seconds], a
+    call calc_bcd_vals
+    ld a, [leap_frame_counter]
+    dec a
+    jp z, .leap_frame
+    ld [leap_frame_counter], a
+    ld a , 59
+    ld [frame_counter], a
+    ret
+.leap_frame
+    ld a, 4
+    ld [leap_frame_counter], a
+    ld a, 60
+    ld [frame_counter], a
+.end_timer_tick
+ret;
+
+drawTimer::
+    push bc
+
+    ld a, [time_left_bcd_ones]
+    ld hl, ones_0
+    ld b, 00
+    ld c, 20
+
+.onesLoopStart
+    cp a, 0
+    jr z , .onesLoopEnd
+    add hl, bc
+    dec a
+    jr .onesLoopStart
+.onesLoopEnd
+
+    ld b , h
+    ld c, l
+    ld hl, timer_sprite_buffer
+   ;; ld bc, ones_0
+    ld de, 20;; 5 obj per number
+    call memcpy
+
+
+    ld a, [time_left_bcd_tens]
+    ld hl, tens_0
+    ld b, 00
+    ld c, 20
+
+.tensLoopStart
+    cp a, 0
+    jr z , .tensLoopEnd
+    add hl, bc
+    dec a
+    jr .tensLoopStart
+.tensLoopEnd
+
+    ld b , h
+    ld c, l
+    ld hl, timer_sprite_buffer + 20
+    ;ld bc, tens_0
+    ld de, 20;; 5 obj per number
+    call memcpy
+
+    pop bc
+    ld h, b
+    ld l, c
+    ld bc,  timer_sprite_buffer
+    ld de, 40
+    call memcpy_keepaddr;; this keeps the final address in bc
+ret;
+
+
+calc_bcd_vals:
+    xor a
+    ld d, a ; tens place counter
+    ld e ,a ; ones place counter
+    ld a, 10
+    ld b, a
+    ld a, [time_left_seconds]
+.start_loop
+    sub a, b
+    jp c, .carryFlagHit
+    inc d
+    jp .start_loop
+
+.carryFlagHit
+    add a, b
+    ld e, a
+    ld [time_left_bcd_ones], a
+    ld a, d
+    ld [time_left_bcd_tens], a
+    ret;
+
+
+
+;------------------OAM data------------------------------
+
+;------------- Tens Place --------
+;db $10, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+;db $17, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
+;db $20, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+;db $24, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)   ; BOTTOMLEFT 
+;db $28, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
+;db $17, $4f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; TopRight
+;db $24, $4f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM Right
+tens_0: 
+    db $20, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db 0, 0, 0, 0
+    db 0, 0, 0, 0
+    db 0, 0, 0, 0
+    db 0, 0, 0, 0
+tens_1:
+    db $10, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+    db $17, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
+    db $20, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $24, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
+    db $28, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
+tens_2:
+    db $24, $4f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM Right
+    db $17, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
+    db $00, $00, $00, $00
+    db $00, $00, $00, $00
+    db $00, $00, $00, $00
+tens_3:
+    db $17, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
+    db $24, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)   ; BOTTOMLEFT 
+    db $00, $00, $00, $00
+    db $00, $00, $00, $00
+    db $00, $00, $00, $00
+tens_4:
+    db $10, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+    db $24, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)   ; BOTTOMLEFT 
+    db $28, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
+    db $00, $00, $00, $00
+    db $00, $00, $00, $00
+; ---- Currently Unused ----
+    ; tens_5;   
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; tens_6;
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; tens_7;
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; tens_8;
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; tens_9;
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+    ; db $00, $00, $00, $00
+
+;--------------Ones Place -------------------------------
+
+;db $10, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+;db $17, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
+;db $20, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+;db $24, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
+;db $28, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
+;db $17, $67, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; TopRight
+;db $24, $67, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM Right
+ones_0:
+db $20, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+ones_1:
+db $10, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+db $17, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
+db $20, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+db $24, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
+db $28, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
+ones_2:
+db $17, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
+db $24, $67, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM Right
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+ones_3:
+db $17, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
+db $24, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+ones_4:
+db $24, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
+db $28, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
+db $10, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+ones_5:
+db $17, $67, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; TopRight
+db $24, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+ones_6:
+db $00, $00, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+db $17, $67, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; TopRight
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+
+ones_7:
+db $17, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
+db $20, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+db $24, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
+db $28, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
+db $00, $00, $00, $00
+
+ones_8:
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+
+ones_9:
+db $24, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
+db $28, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+db $00, $00, $00, $00
+
+
+
+SECTION "MainTimerVars", wram0 [$c100]
+intro_countdown_time_seconds:
+    db
+time_left_seconds::
+    db
+time_left_bcd_tens:
+    db
+time_left_bcd_ones:
+    db
+frame_counter:
+    db
+leap_frame_counter:
+    db

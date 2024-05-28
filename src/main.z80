@@ -117,6 +117,8 @@ MainGameLoop::
     jp z, TITLE_LOOP
     cp SYSSTATE_EATING_SCREEN
     jp z, EAT_SCREEN_LOOP
+    ; cp SYSSTATE_COMPLETED_SCREEN
+    ; jp z, COMPLETED_SCREEN_LOOP
 
 
 

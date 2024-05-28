@@ -1,0 +1,6 @@
+; SECTION "CompleteScreenLogic", ROM0
+; INIT_COMPLETED_SCREEN::
+
+; COMPLETED_SCREEN_LOOP::
+
+;    ; jp EndMainGameLoop;
