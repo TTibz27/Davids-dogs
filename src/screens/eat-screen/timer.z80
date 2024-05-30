@@ -17,6 +17,9 @@ ld [time_left_seconds], a
 ld a, 3
 ld [intro_countdown_time_seconds], a
 
+ld a, 1
+ld [transition_counter_sec], a
+
 ret;
 
 tickMainTimer::
@@ -43,7 +46,15 @@ ret nz
     ld [leap_frame_counter], a
     ld a, 60
     ld [frame_counter], a
+ret
 .end_timer_tick
+    ld a, $ff
+    ld [wActionAnimationTimer], a
+    ld a, [transition_counter_sec]
+    dec a
+    ld [transition_counter_sec],a 
+    cp a, 0
+    call z, INIT_COMPLETED_SCREEN
 ret;
 
 drawTimer::
@@ -281,4 +292,6 @@ time_left_bcd_ones:
 frame_counter:
     db
 leap_frame_counter:
+    db
+transition_counter_sec:
     db

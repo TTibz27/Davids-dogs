@@ -1,6 +1,124 @@
-; SECTION "CompleteScreenLogic", ROM0
-; INIT_COMPLETED_SCREEN::
+INCLUDE "hardware.inc"
+INCLUDE "src/labels/hram.z80"
+INCLUDE "src/labels/vector_labels.z80"
+INCLUDE "src/labels/states.z80"
+include "src/screens/eat-screen/anim-enum.z80"
+include "src/screens/eat-screen/eat-screen-consts.z80"
 
-; COMPLETED_SCREEN_LOOP::
+SECTION "CompleteScreenLogic", ROM0
+INIT_COMPLETED_SCREEN::
 
-;    ; jp EndMainGameLoop;
+
+.initScreen
+    call initWaitVBlank
+    xor a ; ld a, 0 ; We only need to reset a value with bit 7 reset, but 0 does the job
+    ld [rLCDC], a ; disables LCD display
+
+    
+;--------------------------load Background Tiles ---------------------
+.copyTiles
+    ld de, EndCompleteScreenTiles - CompleteScreenTiles ; size of tiles
+    ld bc, CompleteScreenTiles
+    ld hl, $9000 ; vram
+    
+    call memcpy; 
+
+.copyTileMap ; 
+    ld hl, $9800 ; move to top left of tile map
+    ld b, $14 ;; width of screen in hex
+    ld c, $12 ; height of screen in hex
+    ld de, CompleteScreenMap
+    call smallTileMapCopy
+
+    ; register a is still zero
+    ; initialize flags to zero
+    ld [hVBlankWaitFlag], a
+
+    ; Set BG scroll to 0 ,0 
+    ld [rSCX], a
+    ld [rSCY], a
+
+
+
+
+; ------------- Set Pallete & init screen --------------------
+    ; Init BG pallete
+    ld a, %11100100
+    ld [rBGP], a
+
+    ; Set Sprite pallete
+    ld a, %11100100 ; black, dark grey, light, transparent
+    ld [rOBP0],a
+    ld a, %11010010 ; black, light grey, white, transparent
+    ld [rOBP1],a
+
+       ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
+    ;TODO ---- TEMP DISABLE SPRITES
+    ;ld a, %10000011
+    ld a, %10000001
+    ld [rLCDC], a
+
+    ; Update player sprite location
+    ;call drawPlayerSprite
+
+    ; set bgm
+    ;ld a, $0
+    ;ld b, a
+    call STOP_MUSIC
+
+; set system state to gameplay
+    ld a, SYSSTATE_COMPLETED_SCREEN
+    ld [hSystemState],a
+
+
+; init vars    
+    ld a, 120
+    ld [wCompleteScreenInitTimer],a
+
+
+ei
+ret
+
+;; -------------------START MAIN LOOP ----------------------------------
+COMPLETED_SCREEN_LOOP::
+    ld hl, $c200
+    ld a, [hl]
+    inc a
+    ld [hl], a
+
+    ld a, [wCompleteScreenInitTimer]
+    cp a, 0
+    jp z, .inputCheck
+    dec a
+    ld [wCompleteScreenInitTimer], a
+    jp  .inputCheckEnd
+
+
+;---------Input Check-------------------------
+.inputCheck
+.b_button_check
+    ldh a, [hJoypadPressed]
+    bit 1, a
+    jp z, .a_button_check
+     ; ---- button pressed ---
+     call INIT_TITLE
+    jr .inputCheckEnd
+.a_button_check
+     ldh a, [hJoypadPressed]
+     bit 0, a
+     jp z, .inputCheckEnd
+     ;---- button pressed ---
+     call INIT_EAT_SCREEN
+     jr .inputCheckEnd
+
+.inputCheckEnd
+
+    call drawCompleteScreen;
+
+    jp EndMainGameLoop;
+; -----------------------END MAIN LOOP ----------------------------------
+
+SECTION "CompleteScreenVars", wramx  [$d100]
+
+wCompleteScreenInitTimer::
+    db ; 

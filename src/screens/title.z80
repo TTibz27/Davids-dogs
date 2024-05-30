@@ -62,6 +62,8 @@ call initWaitVBlank
     ld de, OamMirrorEnd - OamMirror
     call memcpy
 
+    ld a, SYSSTATE_TITLE
+    ld [hSystemState],a
     ;;
     ret
 

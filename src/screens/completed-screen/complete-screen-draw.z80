@@ -1,0 +1,25 @@
+INCLUDE "hardware.inc"
+INCLUDE "src/labels/wram.z80"
+include "src/screens/eat-screen/anim-enum.z80"
+
+SECTION "CompleteScreenDraw", ROM0
+drawCompleteScreen::
+
+    ;BLANK OAM BUFFER
+    ld b, $00;
+    ld hl, plate_dog_sprite_buffer;
+    ld de, hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; - ;68;  68 is debug:  hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
+    call memfill;
+    ;TODO - instead of blanking all of the OAM every single frame, it would proably be better to flag when this needs updated, check if flag exists, then run this
+    ;TODO - that could be improved on by flagging specific objects that need updated or whatever. but like, I am pressed for time so whatever.
+    ;(also to hide sprites you can set their y values out of bounds instead of blanking the whole object, that would probably be better than blanking everything.)
+
+    ld hl, wOAMBufferStart
+    ld b, h ;; load buffer address into bc, bc should always have the next available OAM location after calls
+    ld c, l
+   
+    ; call DrawAnimations
+    ; call drawHotdogSprites
+    ; call drawTimer
+
+ret

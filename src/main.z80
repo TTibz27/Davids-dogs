@@ -26,11 +26,11 @@ INCBIN "gfx/daves-dogs-2.map.bin"
 EndBgTileMap::
 
 TitleBgTiles::
-INCBIN "gfx/title.bin"
+INCBIN "gfx/title-draft.bin"
 EndTitleBgTiles::
 
 TitleBgMap::
-INCBIN "gfx/title.map.bin"
+INCBIN "gfx/title-draft.map.bin"
 EndTitleBgMap::
 
 SpashScreenTiles::
@@ -38,8 +38,16 @@ INCBIN "gfx/splashscreen.bin"
 EndSplashScreenTiles::
 
 SpashScreenMap::
-INCBIN "gfx/title.map.bin"
+INCBIN "gfx/splashscreen.map.bin"
 EndSplashScreenMap::
+
+CompleteScreenTiles::
+    INCBIN "gfx/complete-screen.bin"
+EndCompleteScreenTiles::
+
+CompleteScreenMap::
+    INCBIN "gfx/complete-screen.map.bin"
+EndCompleteScreenMap::
 
 
 
@@ -117,8 +125,8 @@ MainGameLoop::
     jp z, TITLE_LOOP
     cp SYSSTATE_EATING_SCREEN
     jp z, EAT_SCREEN_LOOP
-    ; cp SYSSTATE_COMPLETED_SCREEN
-    ; jp z, COMPLETED_SCREEN_LOOP
+    cp SYSSTATE_COMPLETED_SCREEN
+    jp z, COMPLETED_SCREEN_LOOP
 
 
 

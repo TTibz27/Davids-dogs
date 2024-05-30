@@ -70,7 +70,7 @@ INIT_EAT_SCREEN::
     ; ld a, %11111111
     ; ld [eat_screen_idle_draw_flags], a
    
-
+;----------------------Init Vars ------------------------------------
     xor a
     ld [wHotDogState],a
     ld [wActionAnimationTimer],a

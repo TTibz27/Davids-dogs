@@ -197,7 +197,11 @@ MUSIC_FRAME_STEP::
     ld [music_wait_timer], a
     ret
 
-
+STOP_MUSIC::
+    xor a
+    ld [music_enabled_bool], a
+    ld [$ff26], a
+ret
 
 SECTION "SoundVariables", wram0[$C0A0]
 music_enabled_bool:: ;C0100
