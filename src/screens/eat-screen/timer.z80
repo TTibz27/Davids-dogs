@@ -124,7 +124,7 @@ calc_bcd_vals:
     jp .start_loop
 
 .carryFlagHit
-    add a, b
+    add a, b 
     ld e, a
     ld [time_left_bcd_ones], a
     ld a, d

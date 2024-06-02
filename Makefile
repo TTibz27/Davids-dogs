@@ -19,7 +19,7 @@ ASM_FLAGS		:=	-i $(INC_DIR) -l
 all: fix
 	
 fix: build
-	$(FIX) -p0 -v $(OUTPUT).gb
+	$(FIX) -p255 -v $(OUTPUT).gb
 
 build: $(OBJ_FILES)
 	$(LINKER) -o $(OUTPUT).gb $(OBJ_FILES)

@@ -4,22 +4,188 @@ include "src/screens/eat-screen/anim-enum.z80"
 
 SECTION "CompleteScreenDraw", ROM0
 drawCompleteScreen::
+    ld a, [init_compete_screen_blank]
+    cp a, 0
+    jp nz, .blank_oam_by_vars
+     
+    ld b, $00;
+    ld hl, wOAMBufferStart;
+    ld de, wOAMBufferEnd - wOAMBufferStart;
+    call memfill;
+    
+    ld a, $ff
+    ld [init_compete_screen_blank],a
+    jp .draw_funct_calls
 
     ;BLANK OAM BUFFER
+.blank_oam_by_vars
     ld b, $00;
-    ld hl, plate_dog_sprite_buffer;
-    ld de, hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; - ;68;  68 is debug:  hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
+    ld hl, big_number_sprite_buffer;
+    ld de, big_number_sprite_buffer_end - big_number_sprite_buffer; - ;68;  68 is debug:  hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
     call memfill;
     ;TODO - instead of blanking all of the OAM every single frame, it would proably be better to flag when this needs updated, check if flag exists, then run this
     ;TODO - that could be improved on by flagging specific objects that need updated or whatever. but like, I am pressed for time so whatever.
     ;(also to hide sprites you can set their y values out of bounds instead of blanking the whole object, that would probably be better than blanking everything.)
 
+.draw_funct_calls
     ld hl, wOAMBufferStart
     ld b, h ;; load buffer address into bc, bc should always have the next available OAM location after calls
     ld c, l
    
+    call drawBigNumber
     ; call DrawAnimations
     ; call drawHotdogSprites
     ; call drawTimer
 
 ret
+
+drawBigNumber:
+    push bc
+    
+
+; ------   Tens place------
+    ld a, [wDogsAteTens]
+    ld hl, BigNumber0
+    ld bc, 0024
+.tensLoopStart
+    cp a, 0
+    jr z , .tensLoopEnd
+    add hl, bc
+    dec a
+    jr .tensLoopStart
+.tensLoopEnd
+    ld b, h
+    ld c, l
+    ld hl, big_number_sprite_buffer  
+    ld de, 6*4 ;; 6 obj
+    call memcpy
+
+;------- ones place --------
+
+    ld a, [wDogsAteOnes]
+    ld hl, BigNumber0
+    ld bc, 0024
+.onesLoopStart
+    cp a, 0
+    jr z , .onesLoopEnd
+    add hl, bc
+    dec a
+    jr .onesLoopStart
+.onesLoopEnd
+
+    ld b, h
+    ld c, l
+    ;ones place tiles
+    ld hl, big_number_sprite_buffer + 24
+    ld de, 6*4 ;; 6 obj
+    call memcpy
+
+ ;Move ones place right
+    ld hl, big_number_sprite_buffer + 24
+    inc hl ; points at x loc
+    ld a, 6
+    ld b, a
+.startOnesPlaceLoop
+    ld a, [hl]
+    add a, 20  ; add distance between numbers
+    ld [hl+], a ;stores, now pointing at tile #
+    inc hl ; flags
+    inc hl ; next y val
+    inc hl
+
+    
+    dec b
+jp nz, .startOnesPlaceLoop
+
+
+; copy big number sprites to OAM
+    pop bc
+    ld h, b
+    ld l, c
+    ld bc, big_number_sprite_buffer
+    ld de, big_number_sprite_buffer_end - big_number_sprite_buffer
+    call memcpy_keepaddr;; this keeps the final address in bc
+
+    ret
+
+SECTION "CompleteScreenBigNumberMap", ROM0
+
+BigNumber0::
+    db $48, $48, $01, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $02, $00
+    db $50, $48, $10, $00
+    db $50, $50, $11, $00
+    db $58, $48, $22, $00
+    db $58, $50, $23, $00
+BigNumber1::
+    db $48, $48, $03, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $04, $00
+    db $50, $48, $12, $00
+    db $50, $50, $13, $00
+    db $58, $48, $24, $00
+    db $58, $50, $25, $00
+ BigNumber2::
+    db $48, $48, $05, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $06, $00
+    db $50, $48, $07, $00
+    db $50, $50, $14, $00
+    db $58, $48, $26, $00
+    db $58, $50, $27, $00
+BigNumber3::
+    db $48, $48, $05, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $06, $00
+    db $50, $48, $15, $00
+    db $50, $50, $16, $00
+    db $58, $48, $28, $00
+    db $58, $50, $29, $00
+BigNumber4::
+    db $48, $48, $07, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $08, $00
+    db $50, $48, $17, $00
+    db $50, $50, $18, $00
+    db $58, $48, $00, $00
+    db $58, $50, $2A, $00
+BigNumber5::
+    db $48, $48, $09, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $0a, $00
+    db $50, $48, $19, $00
+    db $50, $50, $1a, $00
+    db $58, $48, $0d, $00
+    db $58, $50, $2b, $00
+BigNumber6::
+    db $48, $48, $0b, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $0c, $00
+    db $50, $48, $1b, $00
+    db $50, $50, $06, $00
+    db $58, $48, $28, $00
+    db $58, $50, $29, $00
+BigNumber7::
+    db $48, $48, $0d, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $0e, $00
+    db $50, $48, $1c, $00
+    db $50, $50, $1d, $00
+    db $58, $48, $2c, $00
+    db $58, $50, $2d, $00
+BigNumber8::
+    db $48, $48, $0f, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $06, $00
+    db $50, $48, $1e, $00
+    db $50, $50, $1f, $00
+    db $58, $48, $28, $00
+    db $58, $50, $29, $00
+BigNumber9::
+    db $48, $48, $0f, $00  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
+    db $48, $50, $06, $00
+    db $50, $48, $20, $00
+    db $50, $50, $21, $00
+    db $58, $48, $00, $00
+    db $58, $50, $2e, $00
+
+SECTION "CompleteScreenDrawVars", wramx
+init_compete_screen_blank::
+    db
+
+big_number_sprite_buffer:: 
+    ds 48; 4*12 uses 12 objects
+big_number_sprite_buffer_end::
+

@@ -1,5 +1,6 @@
 INCLUDE "hardware.inc"
 INCLUDE "src/labels/hram.z80"
+INCLUDE "src/labels/wram.z80"
 INCLUDE "src/labels/vector_labels.z80"
 INCLUDE "src/labels/states.z80"
 include "src/screens/eat-screen/anim-enum.z80"
@@ -39,9 +40,35 @@ INIT_COMPLETED_SCREEN::
     ld [rSCY], a
 
 
+;------------------- Load Sprite Tiles --------------------------
+
+;----------------------Sprites -------------------    
+    .initCompleteScreenSprites
+    ld hl, $8000  ; dest address in vram
+
+    ; ld bc, BlankTile
+    ; ld de, 16
+    ; call memcpy
+
+    ;ld bc, lightGreyTile
+    ;ld de, 16
+    ;call memcpy
+
+    ld bc, BigNumberSprites
+    ld de, EndBigNumberSprites - BigNumberSprites
+    call memcpy
+    
+    
 
 
 ; ------------- Set Pallete & init screen --------------------
+
+    ;blank OAM 
+    ld b, $00;
+    ld hl, wOAMBufferStart;
+    ld de, wOAMBufferEnd - wOAMBufferStart;
+    call memfill;
+
     ; Init BG pallete
     ld a, %11100100
     ld [rBGP], a
@@ -53,9 +80,9 @@ INIT_COMPLETED_SCREEN::
     ld [rOBP1],a
 
        ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
-    ;TODO ---- TEMP DISABLE SPRITES
-    ;ld a, %10000011
-    ld a, %10000001
+
+    ld a, %10000011
+    ;ld a, %10000001
     ld [rLCDC], a
 
     ; Update player sprite location
@@ -71,9 +98,33 @@ INIT_COMPLETED_SCREEN::
     ld [hSystemState],a
 
 
-; init vars    
+; ----------init vars   ------------------ 
     ld a, 120
     ld [wCompleteScreenInitTimer],a
+    ld a, 0
+    ld [init_compete_screen_blank],a
+
+.calc_bcd_vals
+    xor a
+    ld d, a ; tens place counter
+    ld e ,a ; ones place counter
+    ld a, 10
+    ld b, a
+    ld a, [wHotDogsEatenCount]
+.start_loop
+    sub a, b
+    jp c, .carryFlagHit
+    inc d
+    jp .start_loop
+
+.carryFlagHit
+    add a, b
+    ld e, a
+    ld [wDogsAteOnes], a
+    ld a, d
+    ld [wDogsAteTens], a
+    ret;
+
 
 
 ei
@@ -116,9 +167,26 @@ COMPLETED_SCREEN_LOOP::
     call drawCompleteScreen;
 
     jp EndMainGameLoop;
-; -----------------------END MAIN LOOP ----------------------------------
+; -----------------------END MAIN LOOP --------------------
 
+
+
+; ------------------------------ WRAM --------------
 SECTION "CompleteScreenVars", wramx  [$d100]
 
 wCompleteScreenInitTimer::
     db ; 
+wDogsAteTens::
+    db
+wDogsAteOnes::
+    db
+
+   
+;-----------------------ROM DATA ------------------------
+section "CompleteScreenSpriteData", rom0
+
+;; ----------------Sprite GFX --------------------------
+    BigNumberSprites::
+        INCBIN "gfx/big-numbers.bin"
+    EndBigNumberSprites::
+        
