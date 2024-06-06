@@ -150,7 +150,7 @@ tens_0:
     db 0, 0, 0, 0
     db 0, 0, 0, 0
 tens_1:
-    db $10, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+    db $12, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
     db $17, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
     db $20, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
     db $24, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
@@ -168,7 +168,7 @@ tens_3:
     db $00, $00, $00, $00
     db $00, $00, $00, $00
 tens_4:
-    db $10, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+    db $12, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
     db $24, $41, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)   ; BOTTOMLEFT 
     db $28, $49, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
     db $00, $00, $00, $00
@@ -221,7 +221,7 @@ db $00, $00, $00, $00
 db $00, $00, $00, $00
 db $00, $00, $00, $00
 ones_1:
-db $10, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+db $12, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
 db $17, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; TOP LEFT
 db $20, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; MIDDLE
 db $24, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
@@ -241,7 +241,7 @@ db $00, $00, $00, $00
 ones_4:
 db $24, $57, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) LEFT BOTTOM
 db $28, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette)  ; BOTTOM
-db $10, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
+db $12, $5f, $00, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; TOP
 db $00, $00, $00, $00
 db $00, $00, $00, $00
 ones_5:

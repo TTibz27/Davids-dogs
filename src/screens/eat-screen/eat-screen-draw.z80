@@ -7,8 +7,8 @@ drawMain::
 
     ;BLANK OAM BUFFER
     ld b, $00;
-    ld hl, plate_dog_sprite_buffer;
-    ld de, hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; - ;68;  68 is debug:  hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
+    ld hl, timer_sprite_buffer;
+    ld de, end_miscBuffer - timer_sprite_buffer; - ;68;  68 is debug:  hand_anim_sprite_buffer_end - plate_dog_sprite_buffer; ;; Last item defined - first item defined 
     call memfill;
     ;TODO - instead of blanking all of the OAM every single frame, it would proably be better to flag when this needs updated, check if flag exists, then run this
     ;TODO - that could be improved on by flagging specific objects that need updated or whatever. but like, I am pressed for time so whatever.
@@ -18,11 +18,34 @@ drawMain::
     ld b, h ;; load buffer address into bc, bc should always have the next available OAM location after calls
     ld c, l
    
+    call populateStandardEyes ; does not touch oam buffer
     call DrawAnimations
     call drawHotdogSprites
     call drawTimer
+    call copyAccentSpritesOAM ; copies eyes and other sprites
 
 ret
+
+populateStandardEyes::
+    push bc ;; this should still respect that BC must be the current OAM index
+
+        ld a, [wHotDogState]
+        bit 4, a
+        jp z, .pop_right_eyes
+        ld hl, eye_buffer  
+        ld bc, normal_eyes_left
+        ld de, 8
+        call memcpy
+        jr .end_pop_standard_eyes
+.pop_right_eyes
+        ld hl, eye_buffer  
+        ld bc, normal_eyes_right
+        ld de, 8
+        call memcpy
+.end_pop_standard_eyes
+    pop bc
+    ret
+
 
 drawHotdogSprites:: ; assume buffer address is in BC
     push bc
@@ -59,6 +82,10 @@ drawHotdogSprites:: ; assume buffer address is in BC
         cp a, EATANIM_EAT_LEFT
         jp z, .endHotDogChecks
         cp a, EATANIM_EAT_RIGHT
+        jp z, .endHotDogChecks
+        cp a, EATANIM_WHIFF_LEFT
+        jp z, .endHotDogChecks
+        cp a, EATANIM_WHIFF_RIGHT
         jp z, .endHotDogChecks
 
         ;else check if bit is set
@@ -161,24 +188,40 @@ DrawAnimations::
     ld bc, debug_label
     ld de, 14
     call memcpy
+
+    ;Check for the anticipation frame counter
+    ld a, [eat_anticipation_frame_timer]
+    cp a, 0
+    jp z, .mainAnimations
+    dec a
+    ld [eat_anticipation_frame_timer],a
+    jp .handleEatPreanimation
+
+
+
     ;; this is effectively a big switch
+.mainAnimations
     ld a, [wPlayerActions]
     cp a, EATANIM_LEFT_REACH
-    jr z, .drawLeftReach
+    jp z, .drawLeftReach
     cp a, EATANIM_RIGHT_REACH
-    jr z, .drawRightReach
+    jp z, .drawRightReach
     cp a, EATANIM_HOLD_LEFT
-    jr z, .drawLeftHold
+    jp z, .drawLeftHold
     cp a, EATANIM_HOLD_RIGHT
-    jr z, .drawRightHold
+    jp z, .drawRightHold
     cp a, EATANIM_HOLD_BOTH
-    jr z, .drawBothHold 
+    jp z, .drawBothHold 
     cp a, EATANIM_EAT_LEFT
-    jr z, .drawBiteLeft
+    jp z, .drawBiteLeft
     cp a, EATANIM_EAT_RIGHT
-    jr z, .drawBiteRight
+    jp z, .drawBiteRight
+    cp a, EATANIM_WHIFF_LEFT
+    jp z, .drawBiteLeft
+    cp a, EATANIM_WHIFF_RIGHT
+    jp z, .drawBiteRight
 
-    jr .copySpriteOAMBufferAnims ;; default case
+    jp .copySpriteOAMBufferAnims ;; default case
 
 
 
@@ -220,13 +263,32 @@ DrawAnimations::
         ld bc, left_hand_biting_dog
         ld de, 44 ;; 44bytes = 11 obj 
         call memcpy
-        jr .copySpriteOAMBufferAnims
+        jr .leftBiteAccentSprites
     .drawBiteRight
         ld hl, hand_anim_sprite_buffer  
         ld bc, right_hand_biting_dog
         ld de, 44 ;; 44bytes = 11 obj 
         call memcpy
-        jr .copySpriteOAMBufferAnims
+        jr .rightBiteAccentSprites
+
+
+
+    .leftBiteAccentSprites
+        ld a, [wPlayerActions]
+        cp a, EATANIM_EAT_LEFT
+        call z, addClosedEyes
+        cp a, EATANIM_WHIFF_LEFT
+        call z, addSadEyesLeft
+    jr .copySpriteOAMBufferAnims
+
+    .rightBiteAccentSprites
+    ld a, [wPlayerActions]
+        cp a, EATANIM_EAT_RIGHT
+        call z, addClosedEyes
+        cp a, EATANIM_WHIFF_RIGHT
+        call z, addSadEyesRight
+    jr .copySpriteOAMBufferAnims
+
 
     .copySpriteOAMBufferAnims
         pop bc
@@ -239,6 +301,79 @@ DrawAnimations::
     ret ; --------------------------
 
 
+
+; 
+.handleEatPreanimation ;; lets just use the hand anim objects for this
+    ld a, [wHotDogState]
+    bit 4, a
+    jp z, .preanimRight
+    call addDeterminedEyesLeft
+    jp .drawPreanimMouth
+.preanimRight
+    call addDeterminedEyesRight
+.drawPreanimMouth
+    ld hl, hand_anim_sprite_buffer  
+    ld bc, mouth_solid
+    ld de, 8 ;2 obj 
+    call memcpy
+
+jp .copySpriteOAMBufferAnims
+
+
+;--------------------------------Accent sprite subroutines ------------------------------
+    eyesLookingLeft:
+
+  ld hl, hand_anim_sprite_buffer  
+        ld bc, left_hand_idle
+        ld de, 8
+        call memcpy
+    ret;
+
+    addSadEyesLeft:
+        ld hl, eye_buffer  
+        ld bc, sad_eyes_left
+        ld de, 8
+        call memcpy
+    ret
+
+    addSadEyesRight:
+        ld hl, eye_buffer  
+        ld bc, sad_eyes_right
+        ld de, 8
+        call memcpy
+    ret
+    addDeterminedEyesLeft:
+        ld hl, eye_buffer  
+        ld bc, determined_eyes_left
+        ld de, 8
+        call memcpy
+    ret
+    addDeterminedEyesRight:
+        ld hl, eye_buffer  
+        ld bc, determined_eyes_right
+        ld de, 8
+        call memcpy
+    ret
+
+    addClosedEyes:
+        ld hl, eye_buffer  
+        ld bc, closed_eyes
+        ld de, 8
+        call memcpy
+    ret
+
+    
+
+copyAccentSpritesOAM:
+    ld h, b
+    ld l, c
+    ld bc, eye_buffer
+    ld de, end_miscBuffer - eye_buffer
+    call memcpy_keepaddr ;; load buffer address back into bc
+ ret;
+
+
+  ; ---------------------------------------------------------------------------------------  
  ; it would probably be good to dynamically account for the tile number based on when it is loaded into RAM if possible
  ; right now we are hardcoding tile numbers straight from the debugger so whatever I guess.
 
@@ -375,9 +510,47 @@ right_hand_biting_dog:
     db $78, $70, $1c, %00010000   ;y- loc, x - loc, tile #,  flags , 
 
 
+    closed_eyes:
+    db $48, $50, $25, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db  $48, $5b, $25, %00110000  ;y- loc, x - loc, tile #,  flag s (x-flip, alt pallete),
+
+    normal_eyes_left:
+        db $49, $50, $24, %00110000   ;y- loc, x - loc, tile #,  flags ,
+        db $49, $5b, $24, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    normal_eyes_right:
+    db $49, $50, $24, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $49, $5b, $24, %00010000   ;y- loc, x - loc, tile #,  flags ,
+
     
 
-    ; we've got 3 objects left on the idle screen at this point.
+    sad_eyes_left:
+        db $48, $50, $28, %00110000   ;y- loc, x - loc, tile #,  flags ,
+        db $48, $5a, $27, %00110000   ;y- loc, x - loc, tile #,  flags ,
+        
+
+    sad_eyes_right:
+        db $48, $51, $27, %00010000   ;y- loc, x - loc, tile #,  flags ,
+        db $48, $5b, $28, %00010000   ;y- loc, x - loc, tile #,  flags ,
+
+    
+determined_eyes_right:
+    db $48, $50, $28, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $48, $5c, $27, %00010000   ;y- loc, x - loc, tile #,  flags ,
+
+determined_eyes_left:
+    db $48, $4f, $27, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    db $48, $5b, $28, %00110000   ;y- loc, x - loc, tile #,  flags ,
+
+
+mouth_solid:
+    db $57, $51, $2d, %00000000   ;y- loc, x - loc, tile #,  flags ,
+    db $57, $59, $2e, %00000000   ;y- loc, x - loc, tile #,  flags ,
+
+mouth_outline:
+    db $54, $51, $2b, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $54, $59, $2c, %00010000   ;y- loc, x - loc, tile #,  flags ,
+
+; we've got 3 objects left on the idle screen at this point.
     ;2 for the eyes?
     ;1 for mouth?
 
@@ -391,6 +564,10 @@ SECTION "EatScreenDrawVars", wramx
 debug:
     ds 14;
 eat_screen_idle_draw_flags::
+    db
+
+
+eat_anticipation_frame_timer::
     db
 ;  --------------------FLAGS --------------------------------    
 ;       ???             | draw left dog | draw right dog
@@ -410,3 +587,10 @@ plate_dog_sprite_buffer_end::
 hand_anim_sprite_buffer::
     ds 44 ; 11 objects
 hand_anim_sprite_buffer_end::
+eye_buffer::
+    ds 8 ; 2 obj
+end_eyeBuffer::
+miscBuffer::
+    ds 20 ;the final 5 objs
+end_miscBuffer::
+

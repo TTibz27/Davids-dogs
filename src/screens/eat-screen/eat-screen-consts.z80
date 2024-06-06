@@ -1,3 +1,6 @@
-CONST_ReachTimeFrames  EQU 25;
-CONST_BiteTimeFrames EQU 20;
+CONST_ReachTimeFrames  EQU 17;
+CONST_BiteTimeFrames EQU 15;
+CONST_WhiffedBiteTimeFrames EQU 30;
 CONST_TimerDurationSeconds equ 30;
+CONST_DogRespawnFrames equ 40;
+CONST_EatAnticipationFrames equ 4;

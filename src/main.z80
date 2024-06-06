@@ -18,11 +18,11 @@ EntryPoint: ;
 ;; -------------- Background GFX ----------------------
 section "BinGfx", ROM0 
 BgTiles::
-INCBIN "gfx/daves-dogs-2.bin"
+INCBIN "gfx/daves-dog-5.bin"
 EndBgTiles::
 
 BgTileMap::
-INCBIN "gfx/daves-dogs-2.map.bin"
+INCBIN "gfx/daves-dog-5.map.bin"
 EndBgTileMap::
 
 TitleBgTiles::
