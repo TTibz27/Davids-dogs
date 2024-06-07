@@ -29,6 +29,10 @@ TitleBgTiles::
 INCBIN "gfx/title-draft.bin"
 EndTitleBgTiles::
 
+TitleScreenSprites::
+incbin "gfx/press-start-text.bin"
+EndTitleScreenSprites::
+
 TitleBgMap::
 INCBIN "gfx/title-draft.map.bin"
 EndTitleBgMap::
@@ -48,6 +52,9 @@ EndCompleteScreenTiles::
 CompleteScreenMap::
     INCBIN "gfx/complete-screen.map.bin"
 EndCompleteScreenMap::
+
+
+
 
 
 
