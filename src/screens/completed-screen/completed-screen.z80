@@ -152,6 +152,7 @@ COMPLETED_SCREEN_LOOP::
     bit 1, a
     jp z, .a_button_check
      ; ---- button pressed ---
+     
      call INIT_TITLE
     jr .inputCheckEnd
 .a_button_check

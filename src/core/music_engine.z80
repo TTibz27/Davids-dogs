@@ -15,7 +15,7 @@ INIT_MUSIC::
 
     ld a ,b
     cp 0
-    jr z, .song0SetAddr  
+    jr z, .song1SetAddr  
     cp 1
     jr z, .song2SetAddr
 
@@ -26,7 +26,7 @@ INIT_MUSIC::
     pop af
     ret  ;; none found
 
-.song0SetAddr
+.song1SetAddr
     ld hl, Song1Commands
     ld a, h
     ld [music_next_cmd_high], a
@@ -42,6 +42,17 @@ INIT_MUSIC::
     jp .start_playback
 
 .song2SetAddr
+    ld hl, Song2Commands
+    ld a, h
+    ld [music_next_cmd_high], a
+    ld a, l
+    ld [music_next_cmd_low], a
+
+    ld hl, Song2Values
+    ld a, h
+    ld [music_next_val_high], a
+    ld a, l
+    ld [music_next_val_low], a
 
     jp .start_playback
 
@@ -194,7 +205,13 @@ MUSIC_FRAME_STEP::
 
 .musicCommandLoopExit  ;; add to timer then bounce.
     ld a, e
+    dec a ; we count this frame as waiting one
+    jp c, .zeroMusicTimer ; this shouldn't happen, but if it does, we should set to zero and move on
     ld [music_wait_timer], a
+    ret
+.zeroMusicTimer
+    xor a
+    ld[music_wait_timer], a
     ret
 
 STOP_MUSIC::
@@ -232,3 +249,11 @@ Song1Values::
 INCBIN "music/test_12-28.val.bin"
 EndSong1Values::
 
+
+Song2Commands::
+INCBIN "music/title-test.cmd.bin"
+EndSong2Commands::
+
+Song2Values::
+INCBIN "music/title-test.val.bin"
+EndSong2Values::

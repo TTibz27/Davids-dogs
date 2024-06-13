@@ -86,7 +86,9 @@ INIT_EAT_SCREEN::
     ld [wHotDogsEatenCount],a
     ld [wHotDogPerfectTimingWindow],a
     ld [eat_anticipation_frame_timer],a
-
+    ld [wEatingAlternatingBonus], a
+    ld [wAlternatingFlag],a
+    
     call INIT_MAIN_TIMER
     ;.initPlayer
      ;//   call initPlayerObject
@@ -141,6 +143,7 @@ EAT_SCREEN_LOOP::
     inc a
     ld [hl], a
     
+    call .resetAlternatingFlag ;; reset this before we check the loop
     ;check inputs, jump this section if actionanim timer is not zero
     ld a, [wActionAnimationTimer]
     cp a, 0
@@ -152,15 +155,14 @@ EAT_SCREEN_LOOP::
 .dec_active_anim_timer
     ld a , [wActionAnimationTimer]
     cp a, 0
-    jp z, .dec_left_dog_respawn_timer
+    jp z, .clear_anim
     dec a
     ld [wActionAnimationTimer],a
-    jr .end_timers ;; skip other timers if we are holding in an animation / player action
-
-.dec_left_dog_respawn_timer
+ jr .dec_left_dog_respawn_timer 
+.clear_anim
     ld a, EATANIM_NONE
     ld [wPlayerActions], a  ;; blank player anims if anim timer is zero
-
+.dec_left_dog_respawn_timer
     ld a , [wLeftDogRespawnTimer]
     cp a, 0
     jp z, .dec_right_dog_respawn_timer
@@ -279,6 +281,10 @@ jp EndMainGameLoop
     ld a, 250
     ld [wLeftDogHealth],a
 
+    ;reset consecutive bonus
+    ld a, 0
+    ld [wEatingAlternatingBonus], a
+
     jp .inputCheckEnd
 ;   END 
 
@@ -314,6 +320,11 @@ jp EndMainGameLoop
     ld a, 250
     ld [wRightDogHealth],a
 
+
+    ;reset consecutive bonus
+    ld a, 0
+    ld [wEatingAlternatingBonus], a
+
     jp .inputCheckEnd
     ;call nz, moveSpriteRight
 
@@ -343,6 +354,10 @@ ret
 .biteLeft
     ld a, CONST_EatAnticipationFrames
     ld [eat_anticipation_frame_timer],a
+    ;check if alternating
+    ld a, [wHotDogState]
+    bit 4, a
+    call z, .setAlternatingFlag
     ;set direction 
     ld a, [wHotDogState]
     set 4, a
@@ -359,7 +374,8 @@ ret
     ld [wPlayerActions], a
    
     ld a, [wLeftDogHealth]
-    sub a, 50
+    call .getDamage ; stores damage in b 
+    sub a, b
     jp c , .finishLeftDog
     jp z , .finishLeftDog
     ld [wLeftDogHealth] , a 
@@ -381,12 +397,20 @@ ret;
     ld [wActionAnimationTimer], a
     ld a, EATANIM_WHIFF_LEFT
     ld [wPlayerActions], a
+
+    ;reset consecutive bonus
+    ld a, 0
+    ld [wEatingAlternatingBonus], a
 ret;
 
 
 .biteRight  
     ld a, CONST_EatAnticipationFrames
     ld [eat_anticipation_frame_timer],a
+    ;check if alternating
+    ld a, [wHotDogState]
+    bit 4, a
+    call nz, .setAlternatingFlag
     ;set direction
     ld a, [wHotDogState]
     res 4, a
@@ -404,7 +428,8 @@ ret;
     ld [wPlayerActions], a
     ;damage
     ld a, [wRightDogHealth]
-    sub a, 50
+    call .getDamage ;; store damage in b
+    sub a, b
     jp c , .finishRightDog
     jp z , .finishRightDog
     ld [wRightDogHealth] , a 
@@ -413,7 +438,10 @@ ret
     ld a, CONST_WhiffedBiteTimeFrames
     ld [wActionAnimationTimer], a
     ld a, EATANIM_WHIFF_RIGHT
-    ld [wPlayerActions], a
+    ld [wPlayerActions], a\
+    ;reset consecutive bonus
+    ld a, 0
+    ld [wEatingAlternatingBonus], a
 ret;
 
 
@@ -427,6 +455,46 @@ ret;
    inc a
    ld [wHotDogsEatenCount] , a
 ret;
+
+
+.getDamage
+    push af
+    ld a, [wAlternatingFlag]
+    cp a, 0
+    jp nz, .incAlternatingBonus
+jp .endGetDamage
+
+
+.incAlternatingBonus
+    ld a, [wEatingAlternatingBonus]
+    add a, 20
+    ld [wEatingAlternatingBonus],a 
+
+.endGetDamage
+    ld b, 50
+    ld a, [wEatingAlternatingBonus]
+    add a, b
+    ld b, a
+    ld a, [wEatingMashBonus]
+    add a, b
+    ld b, a
+
+pop af
+ret
+
+.setAlternatingFlag
+    push af
+    ld a, $ff
+    ld [wAlternatingFlag], a
+    pop af
+ret
+
+.resetAlternatingFlag
+    push af
+    ld a, $00
+    ld [wAlternatingFlag], a
+    pop af
+ret
 
 
 ; --------------------------------
@@ -465,6 +533,8 @@ wHotDogsEatenCount::
 wHotDogPerfectTimingWindow::
     db
 wEatingAlternatingBonus::
+    db
+wAlternatingFlag::
     db
 wEatingMashBonus::
     db

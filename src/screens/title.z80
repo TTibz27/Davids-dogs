@@ -1,5 +1,6 @@
 INCLUDE "hardware.inc"
 INCLUDE "src/labels/hram.z80"
+INCLUDE "src/labels/wram.z80"
 INCLUDE "src/labels/vector_labels.z80"
 INCLUDE "src/labels/states.z80"
 SECTION "TitleScreenLogic", ROM0
@@ -39,56 +40,119 @@ call initWaitVBlank
     ; set system state to 0 (title screen) as well
     ld [hSystemState],a 
 
+.initSprites
+    ld hl, $8000  ; dest address in vram
 
+    ld bc, TitleScreenSprites
+    ld de, EndTitleScreenSprites - TitleScreenSprites
+    call memcpy
+
+
+     ;blank OAM
+     ld b, $00;
+     ld hl, wOAMBufferStart;
+     ld de, wOAMBufferEnd - wOAMBufferStart;
+     call memfill;
 
     ; Init BG pallete
     ld a, %11100100
     ld [rBGP], a
 
     ; Set Sprite pallete
-    ld a, %11100100
+    ld a, %11100100 ; black, dark grey, light, transparent
     ld [rOBP0],a
+    ld a, %11010010 ; black, light grey, white, transparent
+    ld [rOBP1],a
 
-       ; Turn screen on, sprites/objects on, 8x16 sprites (?),  display background
-    ;TODO ---- TEMP DISABLE SPRITES
-    ;ld a, %10000111
-    ld a, %10000001
+
+     ; Turn screen on, sprites/objects on,  display background
+    ld a, %10000011
     ld [rLCDC], a
 
 
     ; lets try to copy sprite OAM to ram
-    ld hl, $C000
-    ld bc, OamMirror
-    ld de, OamMirrorEnd - OamMirror
-    call memcpy
+    ; ld hl, $C000
+    ; ld bc, OamMirror
+    ; ld de, OamMirrorEnd - OamMirror
+    ; call memcpy
 
     ld a, SYSSTATE_TITLE
     ld [hSystemState],a
     ;;
+;------------ INIT VARS -----------------
+    xor a   
+    ld [pressStartFlashTimer], a
+    ld [pressStartShow], a  
+
+
+    ld a, $01
+    ld b, a
+    call INIT_MUSIC
+
+
+    ei
     ret
 
 ;----------------------- END INIT SEQUENCE ------------------------------------------
 
 ;-----------------Start Game loop-----------------------
 TITLE_LOOP::
-        ;; DEBUG FOR MUSIC START
-    xor a
-    ld b, a
 
-    ld a, [hJoypadHeld]
-    bit 6, a
-    call nz, testSound
+
+;TEMP TEST DEBUG
+;jp .drawtext
+
+        ;; DEBUG FOR MUSIC START
+    ; xor a
+    ; ld b, a
+
+    ; ld a, [hJoypadHeld]
+    ; bit 6, a
+    ; call nz, testSound
 
     ; ld a, [hJoypadHeld]
     ; bit 7, a
     
     ; call nz, INIT_MUSIC
 
-
-    ld a, [hTestVar]
+  ;blank buffer
+  ld b, $00;
+  ld hl, TitleSpriteBuffer;
+  ld de, EndTitleSpriteBuffer - TitleSpriteBuffer;
+  call memfill;
+  
+    ;inc timer
+    ld a, [pressStartFlashTimer]
     inc a
-    ld [hTestVar],a
+    ld [pressStartFlashTimer],a
+    cp a, 50
+    jp nz, .checkShowSprites
+.timerReset
+    ld a, 0
+    ld [pressStartFlashTimer], a
+    ld a, [pressStartShow]
+    xor a, $ff ; toggles between 00 and ff
+    ld [pressStartShow], a
 
+.checkShowSprites
+    ld a, [pressStartShow]
+    cp a, 0
+    jp z , .copyToOam ;; skip draw if zero
+
+.drawtoBuffer
+    ld hl, TitleSpriteBuffer  
+    ld bc, press_start_text
+    ld de, 40
+    call memcpy
+
+.copyToOam
+    ld hl, wOAMBufferStart
+    ld bc, TitleSpriteBuffer
+    ld de, 48
+    call memcpy_keepaddr;; this keeps the final address in bc
+
+
+.inputChecks
     ld a,[hJoypadPressed]
     ;Start Button
     bit 3, a
@@ -98,5 +162,34 @@ TITLE_LOOP::
     jp EndMainGameLoop
 ;---------------End Game loop --------------------------
 
+press_start_text:
+db $90, $28, $01, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette),  ; P
+db $90, $30, $02, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ;  R
+db $90, $38, $03, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ; E
+db $90, $40, $04, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) s
+db $90, $48, $04, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) s
 
-;------------State Transition Functions ---------------
+db $90, $58, $04, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) s
+db $90, $60, $05, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) t
+db $90, $68, $06, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) A
+db $90, $70, $02, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) ;  R
+db $90, $78, $05, %00010000  ;y- loc, x - loc, tile #,  flags (alt pallette) t
+
+
+
+;------------VARS ---------------
+SECTION "TitleScreenDrawVars", wramx
+pressStartFlashTimer:
+    db
+pressStartShow:
+    db
+
+konamiCodePtr::
+    db
+konami_code_buffer:: 
+    ds 10; 10 bytes = 10 just pressed inputs
+end_konami_code_buffer::
+
+TitleSpriteBuffer:
+    ds 48; 40 = 10 obj
+EndTitleSpriteBuffer:

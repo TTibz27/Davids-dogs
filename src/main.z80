@@ -102,15 +102,15 @@ Start:
     ;move DMA subroutine to HRAM
     call CopyDMARoutine
 
-    ; INITIALIZE TITLE SCREEN STATE
-    call INIT_TITLE;
-
     ; mask all interrupts besides VBLANK for now
     ; the interrupt flags are at FF0F, not sure what others are needed right now
     ;Enable interrupts
     ld a, %00000001
     ldh [$ffff], a
     ei
+
+   ; INITIALIZE TITLE SCREEN STATE
+   call INIT_TITLE;
 
 MainGameLoop::
 
