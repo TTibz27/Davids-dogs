@@ -18,6 +18,7 @@ INIT_MUSIC::
     jr z, .song1SetAddr  
     cp 1
     jr z, .song2SetAddr
+    
 
     ;;ERROR STATE
     ld a, $27
@@ -27,6 +28,9 @@ INIT_MUSIC::
     ret  ;; none found
 
 .song1SetAddr
+    ld a, BANK(Song1Commands)
+    ld [$2000], a ;; switch to bank 1
+
     ld hl, Song1Commands
     ld a, h
     ld [music_next_cmd_high], a
@@ -42,6 +46,9 @@ INIT_MUSIC::
     jp .start_playback
 
 .song2SetAddr
+    ld a, BANK(Song2Commands)
+    ld [$2000], a ;; switch to bank 2
+
     ld hl, Song2Commands
     ld a, h
     ld [music_next_cmd_high], a
@@ -49,6 +56,21 @@ INIT_MUSIC::
     ld [music_next_cmd_low], a
 
     ld hl, Song2Values
+    ld a, h
+    ld [music_next_val_high], a
+    ld a, l
+    ld [music_next_val_low], a
+
+    jp .start_playback
+
+.song3SetAddr   ; these should be changed so it loads HL then BC, then sets value as playback begins
+    ld hl, Song3Commands
+    ld a, h
+    ld [music_next_cmd_high], a
+    ld a, l
+    ld [music_next_cmd_low], a
+
+    ld hl, Song3Values
     ld a, h
     ld [music_next_val_high], a
     ld a, l
@@ -239,17 +261,19 @@ music_current_offset_low:: ;c107
     db
 
 
-SECTION "Song_1", ROMX, BANK[1]
+SECTION "Song_1", ROMX, bank[1]
 
 Song1Commands::
-INCBIN "music/test_12-28.cmd.bin"
+    INCBIN "music/battle-theme-compressed-2.cmd.bin"
+;;INCBIN "music/test_12-28.cmd.bin"
 EndSong1Commands::
 
 Song1Values::
-INCBIN "music/test_12-28.val.bin"
+    INCBIN "music/battle-theme-compressed-2.val.bin" 
+;INCBIN "music/test_12-28.val.bin"
 EndSong1Values::
 
-
+SECTION "Song_2", ROMX , bank[2]
 Song2Commands::
 INCBIN "music/title-test.cmd.bin"
 EndSong2Commands::
@@ -257,3 +281,16 @@ EndSong2Commands::
 Song2Values::
 INCBIN "music/title-test.val.bin"
 EndSong2Values::
+
+Song3Commands::
+db
+EndSong3Commands::
+
+Song3Values::
+db
+EndSong3Values::
+
+
+SECTION "SoundEffects", ROMX , bank[2]
+BiteSfx::
+    db

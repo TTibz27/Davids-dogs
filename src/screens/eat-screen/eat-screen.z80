@@ -88,6 +88,8 @@ INIT_EAT_SCREEN::
     ld [eat_anticipation_frame_timer],a
     ld [wEatingAlternatingBonus], a
     ld [wAlternatingFlag],a
+    ld [wEatingMashBonus],a
+    ld [wCriticalTimerFreeze],a
     
     call INIT_MAIN_TIMER
     ;.initPlayer
@@ -147,11 +149,40 @@ EAT_SCREEN_LOOP::
     ;check inputs, jump this section if actionanim timer is not zero
     ld a, [wActionAnimationTimer]
     cp a, 0
-    call z,  .check_dog_inputs ; check inputs 
+    jp nz, .input_call_2
 
+.input_call_1
+    call .check_dog_inputs ; check inputs 
+jp .endInputChecks
+.input_call_2
+    call .check_mash_inputs
+.endInputChecks
+   
+
+
+.decPerfectTimer
+    ld a, [wHotDogPerfectTimingWindow]
+    cp a, 0
+    jp z, .EndDecPerfect
+    dec a
+    ld [wHotDogPerfectTimingWindow],a
+.EndDecPerfect
    
 ; Decrement all active timers
-   call tickMainTimer
+    ld a, [wCriticalTimerFreeze]
+    cp a , 0
+    jp z, .tickTimer
+    dec a
+    ld [wCriticalTimerFreeze], a
+    jp .dec_active_anim_timer
+
+.tickTimer
+    call tickMainTimer
+    
+    ;;dec a 
+    ; ld [wcrittimer], a ; or whatbver
+
+
 .dec_active_anim_timer
     ld a , [wActionAnimationTimer]
     cp a, 0
@@ -270,15 +301,20 @@ jp EndMainGameLoop
     set 4, a
     ld [wHotDogState],a
 
+    ;set perfect window
+    ld a, CONST_PerfectWindow
+    ld [wHotDogPerfectTimingWindow], a
+
+    ; is dog there?
     ld a , [wHotDogState]
-    bit 1, a ; is dog there?
+    bit 1, a 
     jp z, .inputCheckEnd
 
     set 3, a
     res 1, a ;remove plate dog
     ld [wHotDogState],a
 
-    ld a, 250
+    ld a, CONST_BaseHotDogHealth
     ld [wLeftDogHealth],a
 
     ;reset consecutive bonus
@@ -309,6 +345,11 @@ jp EndMainGameLoop
     res 4, a
     ld [wHotDogState],a
 
+    ;set perfect window
+    ld a, CONST_PerfectWindow
+    ld [wHotDogPerfectTimingWindow], a
+
+    ; check if dog eists 
     ld a, [wHotDogState]
     bit 0 ,a 
     jp z, .inputCheckEnd
@@ -317,7 +358,7 @@ jp EndMainGameLoop
     res 0, a
     ld [wHotDogState],a
 
-    ld a, 250
+    ld a, CONST_BaseHotDogHealth
     ld [wRightDogHealth],a
 
 
@@ -366,6 +407,19 @@ ret
     ld a, [wHotDogState]
     bit 3, a
     jp z , .whiffBiteLeft
+
+.checkPerfectBiteLeft
+    ld a, [wHotDogPerfectTimingWindow]
+    cp a, 0
+    jp z, .standardBiteLeft
+    ; boom critical
+    ld a, CONST_CriticalBiteTimeFrames
+    ld [wActionAnimationTimer], a
+    ld a , EATANIM_PERFECT_LEFT
+    ld [wPlayerActions], a
+    ld a, CONST_CriticalTimerFreeze
+    ld [wCriticalTimerFreeze], a
+    jp .finishLeftDog
 
 .standardBiteLeft
     ld a, CONST_BiteTimeFrames
@@ -420,7 +474,20 @@ ret;
     bit 2, a
     jp z, .whiffBiteRight
 
-    ; normal bite anim, fallthrough
+.checkPerfectBiteRight
+    ld a, [wHotDogPerfectTimingWindow]
+    cp a, 0
+    jp z, .standardBiteRight
+    ; boom critical
+    ld a, CONST_CriticalBiteTimeFrames
+    ld [wActionAnimationTimer], a
+    ld a, CONST_CriticalTimerFreeze
+    ld [wCriticalTimerFreeze], a
+    ld a , EATANIM_PERFECT_RIGHT
+    ld [wPlayerActions], a
+    jp .finishRightDog
+
+    ; normal bite anim
 .standardBiteRight
     ld a, CONST_BiteTimeFrames
     ld [wActionAnimationTimer], a
@@ -457,24 +524,25 @@ ret;
 ret;
 
 
-.getDamage
+.getDamage  ;; This must store the damage value to be subtracted in B
     push af
     ld a, [wAlternatingFlag]
     cp a, 0
     jp nz, .incAlternatingBonus
-jp .endGetDamage
+jp .calcGetDamage
 
 
 .incAlternatingBonus
     ld a, [wEatingAlternatingBonus]
-    add a, 20
+    add a, CONST_alternatingBonusInc
     ld [wEatingAlternatingBonus],a 
 
-.endGetDamage
-    ld b, 50
+.calcGetDamage
+    ld b, CONST_BaseDamage
     ld a, [wEatingAlternatingBonus]
     add a, b
     ld b, a
+
     ld a, [wEatingMashBonus]
     add a, b
     ld b, a
@@ -496,7 +564,27 @@ ret
     pop af
 ret
 
+;----------MASH input handlers --------------
 
+.check_mash_inputs
+    ldh a, [hJoypadPressed]
+    cp a, 0
+    ret z
+
+    ld a, [wEatingMashBonus]
+    add a, CONST_mashBonusInc
+    ld b, CONST_MashBonusMax
+    cp a, b ; if  b < a, c flag set
+    jp nc, .limitMashBonus
+
+.addToMashBonus
+    ld [wEatingMashBonus], a
+ret 
+
+.limitMashBonus
+    ld a, CONST_MashBonusMax
+    ld [wEatingMashBonus], a
+ret
 ; --------------------------------
 
 SECTION "EatScreenVars", wramx  [$d0a0]
@@ -539,6 +627,8 @@ wAlternatingFlag::
 wEatingMashBonus::
     db
 wEatingCriticalHitRoll::
+    db
+wCriticalTimerFreeze::
     db
 
 

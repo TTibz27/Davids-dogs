@@ -87,6 +87,11 @@ drawHotdogSprites:: ; assume buffer address is in BC
         jp z, .endHotDogChecks
         cp a, EATANIM_WHIFF_RIGHT
         jp z, .endHotDogChecks
+        cp a, EATANIM_PERFECT_LEFT
+        jp z, .endHotDogChecks
+        cp a, EATANIM_PERFECT_RIGHT
+        jp z, .endHotDogChecks
+
 
         ;else check if bit is set
         ld a, [wHotDogState]
@@ -220,6 +225,10 @@ DrawAnimations::
     jp z, .drawBiteLeft
     cp a, EATANIM_WHIFF_RIGHT
     jp z, .drawBiteRight
+    cp a, EATANIM_PERFECT_LEFT
+    jp z, .drawBiteLeft
+    cp a, EATANIM_PERFECT_RIGHT
+    jp z, .drawBiteRight
 
     jp .copySpriteOAMBufferAnims ;; default case
 
@@ -230,15 +239,14 @@ DrawAnimations::
         ld bc, left_hand_grabbing_dog
         ld de, 44 ;; 44bytes = 11 obj 
         call memcpy
-    jr .copySpriteOAMBufferAnims
+    jp .copySpriteOAMBufferAnims
 
     .drawRightReach
         ld hl, hand_anim_sprite_buffer  
         ld bc, right_hand_grabbing_dog
         ld de, 44 ;; 44bytes = 11 obj 
         call memcpy
-    jr .copySpriteOAMBufferAnims
-
+    jp .copySpriteOAMBufferAnims
 
     .drawLeftHold
         ld hl, hand_anim_sprite_buffer  
@@ -279,6 +287,10 @@ DrawAnimations::
         call z, addClosedEyes
         cp a, EATANIM_WHIFF_LEFT
         call z, addSadEyesLeft
+        cp a, EATANIM_PERFECT_LEFT
+        call z, addRaisedEyesLeft
+        cp a, EATANIM_PERFECT_LEFT
+        call z, addPerfectAlert
     jr .copySpriteOAMBufferAnims
 
     .rightBiteAccentSprites
@@ -287,6 +299,10 @@ DrawAnimations::
         call z, addClosedEyes
         cp a, EATANIM_WHIFF_RIGHT
         call z, addSadEyesRight
+        cp a, EATANIM_PERFECT_RIGHT
+        call z, addRaisedEyesRight
+        cp a, EATANIM_PERFECT_RIGHT
+        call z, addPerfectAlert
     jr .copySpriteOAMBufferAnims
 
 
@@ -322,46 +338,85 @@ jp .copySpriteOAMBufferAnims
 
 ;--------------------------------Accent sprite subroutines ------------------------------
     eyesLookingLeft:
-
-  ld hl, hand_anim_sprite_buffer  
+    push af
+        ld hl, hand_anim_sprite_buffer  
         ld bc, left_hand_idle
         ld de, 8
         call memcpy
+    pop af
     ret;
 
     addSadEyesLeft:
+    push af
         ld hl, eye_buffer  
         ld bc, sad_eyes_left
         ld de, 8
         call memcpy
+    pop af
     ret
 
     addSadEyesRight:
+    push af
         ld hl, eye_buffer  
         ld bc, sad_eyes_right
         ld de, 8
         call memcpy
+    pop af
     ret
+    
     addDeterminedEyesLeft:
+    push af
         ld hl, eye_buffer  
         ld bc, determined_eyes_left
         ld de, 8
         call memcpy
+    pop af
     ret
+
     addDeterminedEyesRight:
+    push af
         ld hl, eye_buffer  
         ld bc, determined_eyes_right
         ld de, 8
         call memcpy
+    pop af
+    ret
+
+    addRaisedEyesLeft:
+    push af
+        ld hl, eye_buffer  
+        ld bc, raised_eyes_left
+        ld de, 8
+        call memcpy
+    pop af
+    ret
+
+    addRaisedEyesRight:
+    push af
+        ld hl, eye_buffer  
+        ld bc, raised_eyes_right
+        ld de, 8
+        call memcpy
+    pop af
     ret
 
     addClosedEyes:
+    push af
         ld hl, eye_buffer  
         ld bc, closed_eyes
         ld de, 8
         call memcpy
+    pop af
     ret
 
+    addPerfectAlert:
+    push af
+    ld hl, miscBuffer
+    ld bc, PerfectAlertSprites
+    ld de, 16
+    call memcpy
+    pop af
+    ret;
     
 
 copyAccentSpritesOAM:
@@ -515,24 +570,30 @@ right_hand_biting_dog:
     db  $48, $5b, $25, %00110000  ;y- loc, x - loc, tile #,  flag s (x-flip, alt pallete),
 
     normal_eyes_left:
-        db $49, $50, $24, %00110000   ;y- loc, x - loc, tile #,  flags ,
-        db $49, $5b, $24, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    db $49, $50, $24, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    db $49, $5b, $24, %00110000   ;y- loc, x - loc, tile #,  flags ,
     normal_eyes_right:
     db $49, $50, $24, %00010000   ;y- loc, x - loc, tile #,  flags ,
     db $49, $5b, $24, %00010000   ;y- loc, x - loc, tile #,  flags ,
 
-    
+
+
+    raised_eyes_left:
+    db $48, $50, $26, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    db $48, $5b, $26, %00110000   ;y- loc, x - loc, tile #,  flags ,
+
+    raised_eyes_right:
+    db $48, $50, $26, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $48, $5b, $26, %00010000   ;y- loc, x - loc, tile #,  flags ,
 
     sad_eyes_left:
-        db $48, $50, $28, %00110000   ;y- loc, x - loc, tile #,  flags ,
-        db $48, $5a, $27, %00110000   ;y- loc, x - loc, tile #,  flags ,
-        
+    db $48, $50, $28, %00110000   ;y- loc, x - loc, tile #,  flags ,
+    db $48, $5a, $27, %00110000   ;y- loc, x - loc, tile #,  flags ,
 
     sad_eyes_right:
-        db $48, $51, $27, %00010000   ;y- loc, x - loc, tile #,  flags ,
-        db $48, $5b, $28, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $48, $51, $27, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $48, $5b, $28, %00010000   ;y- loc, x - loc, tile #,  flags ,
 
-    
 determined_eyes_right:
     db $48, $50, $28, %00010000   ;y- loc, x - loc, tile #,  flags ,
     db $48, $5c, $27, %00010000   ;y- loc, x - loc, tile #,  flags ,
@@ -550,10 +611,11 @@ mouth_outline:
     db $54, $51, $2b, %00010000   ;y- loc, x - loc, tile #,  flags ,
     db $54, $59, $2c, %00010000   ;y- loc, x - loc, tile #,  flags ,
 
-; we've got 3 objects left on the idle screen at this point.
-    ;2 for the eyes?
-    ;1 for mouth?
-
+PerfectAlertSprites:
+    db $50, $38, $23, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $40, $40, $23, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $50, $70, $23, %00010000   ;y- loc, x - loc, tile #,  flags ,
+    db $40, $68, $23, %00010000   ;y- loc, x - loc, tile #,  flags ,
 debug_label:
     db "BIG LIGMA       "
 
