@@ -137,6 +137,12 @@ COMPLETED_SCREEN_LOOP::
     inc a
     ld [hl], a
 
+    ;; sfx check 
+    ld a, [wCompleteScreenInitTimer]
+    cp a, 80
+    call z, .playFanfareSfx
+
+    ;check timer
     ld a, [wCompleteScreenInitTimer]
     cp a, 0
     jp z, .inputCheck
@@ -164,12 +170,17 @@ COMPLETED_SCREEN_LOOP::
      jr .inputCheckEnd
 
 .inputCheckEnd
+    
 
     call drawCompleteScreen;
 
     jp EndMainGameLoop;
 ; -----------------------END MAIN LOOP --------------------
 
+.playFanfareSfx
+    ;ld b, 3
+   ; call PLAY_SFX
+ret
 
 
 ; ------------------------------ WRAM --------------

@@ -35,9 +35,9 @@ vBlankHandler::
     call checkRawJoypadInput
 
 ; This is where we should eventually handle playing the current soundeffects /BGM
-
+    call STEP_SFX
   call MUSIC_FRAME_STEP
-  
+ 
 ;check where we need to jump to. if flag is true, restart main loop.
     ld a, [hVBlankWaitFlag]
     cp %00000001

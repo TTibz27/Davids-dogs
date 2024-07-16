@@ -1,5 +1,6 @@
 
 INCLUDE "src/labels/hram.z80"
+include "src/core/sfx_enum.z80"
 SECTION "Music Functions", ROM0
  
 INIT_MUSIC::
@@ -81,7 +82,7 @@ INIT_MUSIC::
 .start_playback ;; this should be fine if it is non-zero
     ld a, $ff
     ld [music_enabled_bool], a
-    ret
+ret
 
 
 MUSIC_FRAME_STEP::
@@ -242,6 +243,234 @@ STOP_MUSIC::
     ld [$ff26], a
 ret
 
+
+PLAY_SFX::
+;; register B must contain the index of the sfx that is initialized.
+ld a, $00 
+ld [sfx_current_offset_low], a 
+ld [sfx_current_offset_high], a 
+   
+ld a, $01
+ld [sfx_wait_timer], a
+
+ld a ,b
+cp SFX_BITE
+jr z, .sfx1SetAddr  
+cp SFX_REACH
+jr z, .sfx2SetAddr
+cp SFX_PERFECT_BITE
+jr z, .sfx3SetAddr
+cp SFX_FANFARE
+jr z, .sfx4SetAddr
+
+
+ret
+
+.sfx1SetAddr ;; this should be a macro prly
+    ld hl, BiteSfxCmds
+    ld a, h
+    ld [sfx_next_cmd_high], a
+    ld a, l
+    ld [sfx_next_cmd_low], a
+
+    ld hl, BiteSfxVals
+    ld a, h
+    ld [sfx_next_val_high], a
+    ld a, l
+    ld [sfx_next_val_low], a
+
+    jp .start_sfx
+
+.sfx2SetAddr
+    ld hl, ReachSfxCmds
+    ld a, h
+    ld [sfx_next_cmd_high], a
+    ld a, l
+    ld [sfx_next_cmd_low], a
+
+    ld hl, ReachSfxVals
+    ld a, h
+    ld [sfx_next_val_high], a
+    ld a, l
+    ld [sfx_next_val_low], a
+    jp .start_sfx
+
+.sfx3SetAddr
+    ld hl, PerfectSfxCmds
+    ld a, h
+    ld [sfx_next_cmd_high], a
+    ld a, l
+    ld [sfx_next_cmd_low], a
+
+    ld hl, PerfectSfxVals
+    ld a, h
+    ld [sfx_next_val_high], a
+    ld a, l
+    ld [sfx_next_val_low], a
+    jp .start_sfx
+
+.sfx4SetAddr
+    ld hl, FanfareSfxCmds
+    ld a, h
+    ld [sfx_next_cmd_high], a
+    ld a, l
+    ld [sfx_next_cmd_low], a
+
+    ld hl, FanfareSfxVals
+    ld a, h
+    ld [sfx_next_val_high], a
+    ld a, l
+    ld [sfx_next_val_low], a
+    jp .start_sfx
+
+
+
+.start_sfx;; this should be fine if it is non-zero
+    ld a, $ff
+    ld [sfx_playing_bool], a
+
+ret 
+
+STEP_SFX::
+
+    ; is sfx enabled?  play if there is a number
+    ld a, [sfx_playing_bool]
+    cp a, 0
+    ret z
+ ;; are we still waiting?
+    ld a, [sfx_wait_timer]
+    cp 0
+    jr z , .sfxCommandLoop ;; if we are at zero, start the command loop, else dec that value and return 
+    ld a, [sfx_wait_timer]
+    dec a
+    ld [sfx_wait_timer], a
+    ret
+
+.sfxCommandLoop
+    ;get the current positon
+    ld a, [sfx_current_offset_high]
+    ld b, a
+    ld a, [sfx_current_offset_low]
+    ld c, a
+
+    ;; get the address of the command of song 
+    ld a , [sfx_next_cmd_high]
+    ld h, a
+    ld a, [sfx_next_cmd_low]
+    ld l ,a 
+    
+    add hl, bc ; hl = hl + bc 
+
+    ; store command in D
+    ld a, [hl]
+    ld d , a
+
+    ;now get val for register, save to E
+    ld a , [sfx_next_val_high]
+    ld h, a
+    ld a, [sfx_next_val_low]
+    ld l, a 
+    add hl, bc
+
+    ld a, [hl]
+    ld e, a
+    
+    ;d and e are all we needed so we should inc the offset then store it.
+    inc bc
+    ld a, b
+    ld [sfx_current_offset_high], a
+    ld a, c
+    ld [sfx_current_offset_low] , a
+
+    ; now if D == 0 we add to wait timer and exit loop. if not then we load the register and start to the top
+    ld a, d
+    cp $00
+    jp z, .sfxWaitCommandThenExit
+
+    ; if we hit the end of file marker, we turn off sfx
+    ld a, d
+    cp $FF 
+    jp z, STOP_SFX
+
+.loadNewCommandToRegister ;; ff + D = hl, [hl] = E
+    ; Check if music channel is disabled for sound effects
+    ; ld a, [hMusicChannelDisable]
+    ; cp $00
+    jp z, .loadNextCommand
+
+; we are only playing on channel 0
+; .sfxBit0
+    ; bit 0, a
+    ; jr z, .sfxBit1
+    ; ld a, d ; check command
+    ; cp $10  ;; if we find a match, restart loop since this channel is disabled.
+    ; jp z, .musicCommandLoop
+    ; cp $11
+    ; jp z, .musicCommandLoop
+    ; cp $12
+    ; jp z, .musicCommandLoop
+    ; cp $13
+    ; jp z, .musicCommandLoop
+    ; cp $14
+    ; jp z, .musicCommandLoop
+    ; ld a, [hMusicChannelDisable]
+.ignoreOtherChannels
+    ld a, d ; check command
+    cp $16
+    jp z, .sfxCommandLoop
+    cp $17
+    jp z, .sfxCommandLoop
+    cp $18
+    jp z, .sfxCommandLoop
+    cp $19
+    jp z, .sfxCommandLoop
+    cp $1A  ;; if we find a match, restart loop since this channel is disabled.
+    jp z, .sfxCommandLoop
+    cp $1B
+    jp z, .sfxCommandLoop
+    cp $1C
+    jp z, .sfxCommandLoop
+    cp $1D
+    jp z, .sfxCommandLoop
+    cp $1E
+    jp z, .sfxCommandLoop
+    cp $20  
+    jp z, .sfxCommandLoop
+    cp $21
+    jp z, .sfxCommandLoop
+    cp $22
+    jp z, .sfxCommandLoop
+    cp $23
+    jp z, .sfxCommandLoop
+
+;     ld a, [hMusicChannelDisable]
+;     ; End sound effect check
+
+.loadNextCommand
+    ld a, e ; val
+    ld c, d  ; register of command
+   
+    ld [$ff00+c], a ;; move val in A to register from Cmd at C
+    jp .sfxCommandLoop
+
+
+.sfxWaitCommandThenExit  ;; add to timer then bounce.
+    ld a, e
+    dec a ; we count this frame as waiting one
+    jp c, .zeroSfxTimer ; this shouldn't happen, but if it does, we should set to zero and move on
+    ld [sfx_wait_timer], a
+    ret
+
+.zeroSfxTimer
+    ld a, 0
+    ld[sfx_wait_timer], a
+    ret
+
+STOP_SFX::
+    ld a, 0
+    ld [sfx_playing_bool], a
+; ld [$ff26], a
+ret
 SECTION "SoundVariables", wram0[$C0A0]
 music_enabled_bool:: ;C0100
     db
@@ -258,6 +487,23 @@ music_next_val_low:: ;c105
 music_current_offset_high::;c106
     db
 music_current_offset_low:: ;c107
+    db
+
+sfx_playing_bool:: ;C0108
+    db
+sfx_wait_timer:: ;C109
+    db 
+sfx_next_cmd_high:: ;c10A
+    db
+sfx_next_cmd_low:: ;c10B
+    db
+sfx_next_val_high:: ;c10C
+    db
+sfx_next_val_low:: ;c10D
+    db
+sfx_current_offset_high::;c10E
+    db
+sfx_current_offset_low:: ;c10F
     db
 
 
@@ -291,6 +537,23 @@ db
 EndSong3Values::
 
 
-SECTION "SoundEffects", ROMX , bank[2]
-BiteSfx::
-    db
+SECTION "SoundEffects", ROMX , bank[1]
+BiteSfxCmds::
+    INCBIN "music/bite-compressed-1.cmd.bin"
+BiteSfxVals::
+    INCBIN "music/bite-compressed-1.val.bin"
+
+ReachSfxCmds::
+    INCBIN "music/reach-1-c.cmd.bin"
+ReachSfxVals::
+    INCBIN "music/reach-1-c.val.bin"
+
+PerfectSfxCmds::
+    INCBIN "music/bite-perfect-1.cmd.bin"
+PerfectSfxVals::
+    INCBIN "music/bite-perfect-1.val.bin"
+
+FanfareSfxCmds::
+    INCBIN "music/fanfare.cmd.bin"
+FanfareSfxVals::
+    INCBIN "music/fanfare.val.bin"

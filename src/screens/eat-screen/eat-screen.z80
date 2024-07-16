@@ -2,6 +2,7 @@ INCLUDE "hardware.inc"
 INCLUDE "src/labels/hram.z80"
 INCLUDE "src/labels/vector_labels.z80"
 INCLUDE "src/labels/states.z80"
+include "src/core/sfx_enum.z80"
 include "src/screens/eat-screen/anim-enum.z80"
 include "src/screens/eat-screen/eat-screen-consts.z80"
 
@@ -296,6 +297,10 @@ jp EndMainGameLoop
     ld a, EATANIM_LEFT_REACH
     ld [wPlayerActions], a
 
+    ;play reach sfx
+    ld b, SFX_REACH
+    call PLAY_SFX
+
     ;set player direction
     ld a, [wHotDogState]
     set 4, a
@@ -339,7 +344,11 @@ jp EndMainGameLoop
 
     ld a, EATANIM_RIGHT_REACH
     ld [wPlayerActions], a
-    
+
+    ;play reach sfx
+    ld b, SFX_REACH
+    call PLAY_SFX
+
     ;set player direction
     ld a, [wHotDogState]
     res 4, a
@@ -419,6 +428,8 @@ ret
     ld [wPlayerActions], a
     ld a, CONST_CriticalTimerFreeze
     ld [wCriticalTimerFreeze], a
+    ld b, SFX_PERFECT_BITE
+    call PLAY_SFX
     jp .finishLeftDog
 
 .standardBiteLeft
@@ -427,6 +438,9 @@ ret
     ld a, EATANIM_EAT_LEFT
     ld [wPlayerActions], a
    
+    ld b, SFX_BITE
+    call PLAY_SFX
+
     ld a, [wLeftDogHealth]
     call .getDamage ; stores damage in b 
     sub a, b
@@ -485,6 +499,10 @@ ret;
     ld [wCriticalTimerFreeze], a
     ld a , EATANIM_PERFECT_RIGHT
     ld [wPlayerActions], a
+    ; critical sfx 
+    ld b, SFX_PERFECT_BITE
+    call PLAY_SFX
+
     jp .finishRightDog
 
     ; normal bite anim
@@ -493,6 +511,10 @@ ret;
     ld [wActionAnimationTimer], a
     ld a, EATANIM_EAT_RIGHT
     ld [wPlayerActions], a
+     
+    ld b, SFX_BITE
+    call PLAY_SFX
+
     ;damage
     ld a, [wRightDogHealth]
     call .getDamage ;; store damage in b

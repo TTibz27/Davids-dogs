@@ -22,7 +22,7 @@ fix: build
 	$(FIX) -m 0x01 -p255 -v $(OUTPUT).gb
 
 build: $(OBJ_FILES)
-	$(LINKER) -o  $(OUTPUT).gb $(OBJ_FILES)
+	$(LINKER) --sym $(PROJECT_NAME).sym -o  $(OUTPUT).gb $(OBJ_FILES)
 	
 $(BUILD_DIR)/obj/%.o : src/%.z80 | $(OBJ_DIRS)
 	$(ASM) $(ASM_FLAGS) -o $@ $<
