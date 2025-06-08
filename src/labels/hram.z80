@@ -2,35 +2,35 @@
 
 
 ;;;;;;;;;;;; EVerything lower than FF88 is reserved for DMA COPY ADDRESS
-hTestMain equ $FF89
-hTestWait equ $FF8A
+def hTestMain equ $FF89
+def  hTestWait equ $FF8A
 
-hSystemState EQU $FF90
-hTestVar EQU $FF91
+def hSystemState EQU $FF90
+def hTestVar EQU $FF91
 
 
 ;I think $FFA0 - $FFAF would be good for audio variables0/
 
 ;57frames/sec * 60 = 3420 frames per minute. 100 bpm = a beat on every 34.2 frames, eigth notes on every 4.2 or something like that.  
-hMusicFrameCounterHigh  equ $FFA0
-hMusicFrameCounterLow equ $FFA1
-hMusicAdjustedCounter  equ $FFA2
+def  hMusicFrameCounterHigh  equ $FFA0
+def hMusicFrameCounterLow equ $FFA1
+def hMusicAdjustedCounter  equ $FFA2
 
 ; 7 6 5 4 3-NoiseCh 2-ch3 1-ch2 0-ch1
-hMusicChannelDisable    equ $FFA8
+def hMusicChannelDisable    equ $FFA8
 
 
 
 
-hVBlankWaitFlag EQU $FFB0
+def hVBlankWaitFlag EQU $FFB0
 
 ;we will define the joypad settings in HRAM so that it can be accessed faster by using ldh vs ld
 ;apparently that is par for the course in the GB world.
-hJoypadLast     EQU $FFB1
-hJoypadReleased EQU $FFB2
-hJoypadPressed  EQU $FFB3
-hJoypadHeld     EQU $FFB4
-hJoypadInput    EQU $FFB5
-hDisableJoypadPolling EQU $FFB6
+def hJoypadLast     EQU $FFB1
+def hJoypadReleased EQU $FFB2
+def hJoypadPressed  EQU $FFB3
+def hJoypadHeld     EQU $FFB4
+def hJoypadInput    EQU $FFB5
+def hDisableJoypadPolling EQU $FFB6
 
 

@@ -1,16 +1,16 @@
-CONST_ReachTimeFrames  EQU 17;
-CONST_BiteTimeFrames EQU 15;
-CONST_CriticalBiteTimeFrames EQU 20;
-CONST_CriticalTimerFreeze EQU 50;
-CONST_WhiffedBiteTimeFrames EQU 30;
-CONST_TimerDurationSeconds equ 30;
-CONST_DogRespawnFrames equ 37;
-CONST_EatAnticipationFrames equ 4;
+def CONST_ReachTimeFrames  EQU 17;
+def CONST_BiteTimeFrames EQU 15;
+def CONST_CriticalBiteTimeFrames EQU 20;
+def CONST_CriticalTimerFreeze EQU 50;
+def CONST_WhiffedBiteTimeFrames EQU 30;
+def CONST_TimerDurationSeconds equ 30;
+def CONST_DogRespawnFrames equ 37;
+def CONST_EatAnticipationFrames equ 4;
 
 ;Eating related consts
-CONST_BaseHotDogHealth equ 250;
-CONST_BaseDamage equ 50;
-CONST_alternatingBonusInc equ 30;
-CONST_mashBonusInc equ 5;
-CONST_MashBonusMax equ 60;
-CONST_PerfectWindow equ 19  ; 2 frame window +  17 CONST_ReachTimeFrames; one frame gets ticked before the next frame is registered, needs to last the duration of reach anim
+def CONST_BaseHotDogHealth equ 250;
+def CONST_BaseDamage equ 50;
+def CONST_alternatingBonusInc equ 30;
+def CONST_mashBonusInc equ 5;
+def CONST_MashBonusMax equ 60;
+def CONST_PerfectWindow equ 19  ; 2 frame window +  17 CONST_ReachTimeFrames; one frame gets ticked before the next frame is registered, needs to last the duration of reach anim

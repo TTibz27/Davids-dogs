@@ -1,11 +1,11 @@
 ; OAM Buffer / shadow
-wOAMBufferStart  EQU $C000
-wOAMBufferEnd    EQU $C0A0
+def wOAMBufferStart  EQU $C000
+def wOAMBufferEnd    EQU $C0A0
 
-wMusicVars      EQU $C0A0 
-wMusicVarsEnd   EQU $C0B0; This only goes to c0a8 but I will leave myself some more space here
+def wMusicVars      EQU $C0A0 
+def wMusicVarsEnd   EQU $C0B0; This only goes to c0a8 but I will leave myself some more space here
 
-wEatScreenDrawVars EQU $C0B0
+def wEatScreenDrawVars EQU $C0B0
 
 
 
