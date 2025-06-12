@@ -39,6 +39,14 @@ INIT_COMPLETED_SCREEN::
     ld [rSCX], a
     ld [rSCY], a
 
+    ld hl, PaletteStart
+    call LoadCGBPals
+    
+    ld hl, Palette4Start
+    call LoadGBCSpritePalette
+
+
+
 
 ;------------------- Load Sprite Tiles --------------------------
 

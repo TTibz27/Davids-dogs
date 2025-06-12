@@ -37,6 +37,16 @@ MACRO rev_Check_hardware_inc
     ENDC
 ENDM
 
+; STUFF PULLED IN 
+DEF rRP_ENABLE_READ_MASK EQU %11000000
+DEF rBGPI                EQU $ff68 ; CGB Mode Only - Background Palette Index
+DEF rBGPI_AUTO_INCREMENT EQU 7     ; increment rBGPI after write to rBGPD
+DEF rBGPD                EQU $ff69 ; CGB Mode Only - Background Palette Data
+DEF rOBPI                EQU $ff6a ; CGB Mode Only - Sprite Palette Index
+DEF rOBPI_AUTO_INCREMENT EQU 7     ; increment rOBPI after write to rOBPD
+DEF rOBPD                EQU $ff6b ; CGB Mode Only - Sprite Palette Data
+DEF rOPRI                EQU $ff6c ; CGB Mode Only - Object Priority Mode
+;;; OLD INCLUDES
 def _HW          EQU $FF00
 
 def _VRAM        EQU $8000 ; $8000->$9FFF

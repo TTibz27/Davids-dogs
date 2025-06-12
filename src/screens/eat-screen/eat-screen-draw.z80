@@ -4,6 +4,7 @@ include "src/screens/eat-screen/anim-enum.z80"
 
 SECTION "EatScreenDraw", ROM0
 drawMain::
+    
 
     ;BLANK OAM BUFFER
     ld b, $00;

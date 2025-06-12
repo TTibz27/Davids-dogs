@@ -1,0 +1,101 @@
+INCLUDE "hardware.inc"
+
+DEF NUM_PAL_COLORS EQU 4
+DEF PAL_COLOR_SIZE EQU 2
+DEF PALETTE_SIZE EQU NUM_PAL_COLORS * PAL_COLOR_SIZE
+
+
+SECTION "Graphics Functions", ROM0
+
+;Make sure all pallete data is in HL
+LoadCGBPals::
+; copy 8 pals to bg palette
+	ld a, 1 << rBGPI_AUTO_INCREMENT
+	ldh [rBGPI], a ; background palette index
+	ld c, LOW(rBGPD)
+	ld b, 8 / 2 ;; 4 loops = four palletes
+.bgp
+rept (2 * PALETTE_SIZE)  ; for each byte in pallete, I think it uses rept to keep B from approaching 8 bit max
+	ld a, [hli] 
+	ldh [c], a   ; move val of HL to FF00 + C, since it auto increments this will keep loading correctly
+endr
+
+	dec b
+	jr nz, .bgp
+
+.end_palette_load
+ret;
+
+;Make sure all pallete data is in HL
+LoadGBCSpritePalette::
+		ld a, 1 << rBGPI_AUTO_INCREMENT
+	ldh [rOBPI], a ; background palette index
+	ld c, LOW(rOBPD)
+	ld b, 8 / 2 ;; 4 loops = four palletes
+.bgp
+rept (2 * PALETTE_SIZE)  ; for each byte in pallete, I think it uses rept to keep B from approaching 8 bit max
+	ld a, [hli] 
+	ldh [c], a   ; move val of HL to FF00 + C, since it auto increments this will keep loading correctly
+endr
+
+	dec b
+	jr nz, .bgp
+
+.end_palette_load
+ret;
+
+
+; return carry if successful
+; any pals to update?
+; 	ldh a, [hCGBPalUpdate]
+; 	and a
+; 	ret z
+; 	; fallthrough
+
+; ForceUpdateCGBPals::
+; 	ldh a, [rSVBK] ; check in current bank
+; 	push af
+; 	ld a, BANK(wBGPals2)
+; 	ldh [rSVBK], a
+
+; 	ld hl, wBGPals2
+
+; ; copy 8 pals to bg palette
+; 	ld a, 1 << rBGPI_AUTO_INCREMENT
+; 	ldh [rBGPI], a ; background palette index
+; 	ld c, LOW(rBGPD)
+; 	ld b, 8 / 2 
+; .bgp
+; rept (1 palettes) * 2  ; for each pallete?
+; 	ld a, [hli] 
+; 	ldh [c], a   ; move val of HL to FF00 + C, since it auto increments this will keep loading correctly
+; endr
+
+; 	dec b
+; 	jr nz, .bgp
+
+; ; hl is now wOBPals2
+; ;;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;~~~~~~~~~~~~~~~~;;;
+; ; copy 8 pals to obpd
+; 	ld a, 1 << rOBPI_AUTO_INCREMENT
+; 	ldh [rOBPI], a
+; 	ld c, LOW(rOBPD)
+; 	ld b, 8 / 2
+; .obp
+; rept (1 palettes) * 2
+; 	ld a, [hli]
+; 	ldh [c], a
+; endr
+
+; 	dec b
+; 	jr nz, .obp
+
+; 	pop af
+; 	ldh [rSVBK], a
+
+; ; clear pal update queue
+; 	xor a
+; 	ldh [hCGBPalUpdate], a
+
+; 	scf
+; 	ret

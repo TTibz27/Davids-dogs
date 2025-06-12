@@ -1,0 +1,19 @@
+
+MACRO assert_valid_rgb
+	rept _NARG
+		assert 0 <= (\1) && (\1) <= 31, "RGB channel must be 0-31"
+		shift
+	endr
+ENDM
+
+MACRO RGB
+	rept _NARG / 3
+		assert_valid_rgb \1, \2, \3
+		dw (1 << 0) * (\1) + (1 << 5) * (\2) + (1 << 10) * (\3)
+		shift 3
+	endr
+ENDM
+
+; DEF palred   EQUS "(1 << 0) *"
+; DEF palgreen EQUS "(1 << 5) *"
+; DEF palblue  EQUS "(1 << 10) *"

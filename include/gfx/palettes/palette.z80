@@ -1,0 +1,53 @@
+
+section "Palette", ROM0 
+PaletteStart::
+; green
+        RGB 05, 31, 31
+        RGB 05, 01, 31
+    ; R
+        RGB 11, 02, 02
+        RGB 04, 04, 04
+    ; red
+        RGB 00, 00, 31
+        RGB 01, 00, 31
+
+; overflow to be safe
+Palette2Start::
+    ;green
+        RGB $14, $14, $08
+        RGB $08, $08, $1F
+    ; yellow
+        RGB $0B, $05, $00
+        RGB 04, 04, 04
+
+Palette3Start::
+        RGB $1f, $1f, $1f
+        RGB $14, $14, $08
+        RGB $14, $04, $08
+        RGB 04, 04, 04
+
+
+Palette4Start::
+        RGB $1f, $1f, $1f
+        RGB $14, $14, $08
+        RGB $14, $04, $08
+        RGB $0b, 02, 02
+    ; yellow
+        RGB 20, 18, 00
+        RGB 20, 21, 00
+    ; red
+        RGB 10, 08, 00
+        RGB 11, 00, 00
+
+        
+    ;green
+        RGB 10, 28, 18
+        RGB 00, 23, 00
+    ; yellow
+        RGB 10, 28, 18
+        RGB 31, 21, 00
+    ; red
+        RGB 10, 28, 18
+        RGB 11, 00, 00
+
+        

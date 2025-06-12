@@ -38,6 +38,13 @@ INIT_EAT_SCREEN::
         ld [rSCX], a
         ld [rSCY], a
 
+        ; Load Colors
+        ld hl, Palette2Start
+        call LoadCGBPals
+
+        ld hl, Palette3Start
+        call LoadGBCSpritePalette
+
 
 
 ;----------------------Sprites -------------------    

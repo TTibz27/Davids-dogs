@@ -1,10 +1,13 @@
+
+INCLUDE "src/macros/farcall.z80"
+INCLUDE "src/macros/gfx_macros.z80"
 INCLUDE "hardware.inc"
 INCLUDE "src/labels/hram.z80"
 INCLUDE "src/labels/wram.z80"
 INCLUDE "src/labels/vector_labels.z80"
 INCLUDE "src/labels/states.z80"
 INCLUDE "gfx/tileset_1.z80"
-
+INCLUDE "gfx/palettes/palette.z80"
 
 SECTION "Header", ROM0[$100]
 EntryPoint: ;
@@ -108,6 +111,10 @@ Start:
     ld a, %00000001
     ldh [$ffff], a
     ei
+
+
+;Color test
+
 
    ; INITIALIZE TITLE SCREEN STATE
    call INIT_TITLE;

@@ -40,6 +40,14 @@ call initWaitVBlank
     ; set system state to 0 (title screen) as well
     ld [hSystemState],a 
 
+        ;;; Color
+    ld hl, PaletteStart
+    call LoadCGBPals
+
+    ld hl, Palette4Start
+    call LoadGBCSpritePalette
+
+
 .initSprites
     ld hl, $8000  ; dest address in vram
 
@@ -78,7 +86,8 @@ call initWaitVBlank
 
     ld a, SYSSTATE_TITLE
     ld [hSystemState],a
-    ;;
+    
+
 ;------------ INIT VARS -----------------
     xor a   
     ld [pressStartFlashTimer], a
